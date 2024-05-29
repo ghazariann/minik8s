@@ -1,0 +1,51 @@
+[
+    {
+        "APIVersion": "apps/v1",
+        "Kind": "Deployment",
+        "Metadata": {
+            "Name": "mongodb-deployment",
+            "Labels": {
+                "app": "mongodb"
+            },
+            "uuid": "0f84370b-f428-4455-9a27-fbe17a0266a8",
+            "namespace": ""
+        },
+        "spec": {
+            "Replicas": 2,
+            "Selector": {
+                "MatchLabels": {
+                    "app": "mongodb"
+                }
+            },
+            "Template": {
+                "Metadata": {
+                    "Name": "",
+                    "Labels": {
+                        "app": "mongodb"
+                    },
+                    "uuid": "",
+                    "namespace": ""
+                },
+                "Spec": {
+                    "Containers": [
+                        {
+                            "Name": "mongodb",
+                            "Image": "mongo",
+                            "Command": null,
+                            "Ports": [
+                                {
+                                    "ContainerPort": 27017
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        "status": {
+            "replicas": 0,
+            "readyReplicas": 0,
+            "conditions": null
+        }
+    }
+]

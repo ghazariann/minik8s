@@ -15,13 +15,8 @@ func main() {
 	}
 
 	rootCmd.AddCommand(
-		kubectl.CmdGetPod,
-		kubectl.CmdGetAllPods,
-		kubectl.CmdCreatePodFromYAML,
-
-		kubectl.CmdGetService,
-		kubectl.CmdGetAllServices,
-		kubectl.CmdCreateServiceFromYAML,
+		kubectl.CreateCmd,
+		kubectl.GetCmd,
 	)
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatalf("Error executing kubectl: %v", err)

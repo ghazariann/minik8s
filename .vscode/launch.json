@@ -1,0 +1,22 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch kubectl",
+            "type": "go",
+            "request": "launch",
+            "program": "${workspaceFolder}/cmd/kubectl/main.go",
+            "args": ["create", "deployment", "-f", "testdata/deployment.yaml"],
+            "env": {},
+            "preLaunchTask": "build kubectl",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Debug API Server",
+            "type": "go",
+            "request": "launch",
+            "program": "${workspaceFolder}/cmd/apiserver/main.go",
+            "args": []
+        }
+    ]
+}

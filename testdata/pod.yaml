@@ -12,12 +12,11 @@ containers:
       - "-g"
       - "daemon off;"
     ports:
-      - 80
-      - 443
+      - containerPort: 80
   - image: busybox
     command:
       - "sleep"
       - "1000"
     ports:
-      - 80
+      - containerPort: 80
 
