@@ -2,11 +2,15 @@ package kubelet
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
+	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 )
 
@@ -36,15 +40,16 @@ func (d *DockerClient) PullImage(imageName string) error {
 }
 
 // ImageExists checks if a Docker image is already pulled
-func (d *DockerClient) ImageExists(imageName string) bool {
-	images, err := d.Client.ImageList(context.Background(), types.ImageListOptions{})
-	if err != nil {
-		log.Printf("Error listing images: %v", err)
-		return false
-	}
+func (d *DockerClient) ImageExists(images []image.Summary, imageName string) bool {
+	// images, err := d.Client.ImageList(context.Background(), image.ListOptions{})
+	// if err != nil {
+	// 	log.Printf("Error listing images: %v", err)
+	// 	return false
+	// }
 	for _, image := range images {
 		for _, tag := range image.RepoTags {
-			if tag == imageName {
+			// fmt.Printf("tag: %s\n", tag)
+			if tag == imageName || tag == imageName+":latest" {
 				return true
 			}
 		}
@@ -67,4 +72,59 @@ func (d *DockerClient) ContainerExists(containerName string) bool {
 		}
 	}
 	return false
+}
+func (d *DockerClient) GetContainerIDByName(containerName string) (string, error) {
+	ctx := context.Background()
+	containers, err := d.Client.ContainerList(ctx, container.ListOptions{All: true})
+	if err != nil {
+		return "", err
+	}
+
+	for _, container := range containers {
+		if containerName == strings.TrimPrefix(container.Names[0], "/") {
+			return container.ID, nil
+		}
+	}
+
+	return "", fmt.Errorf("container %s not found", containerName)
+}
+
+// ListContainers lists all Docker containers
+func (d *DockerClient) ListContainers() ([]types.Container, error) {
+	ctx := context.Background()
+	containers, err := d.Client.ContainerList(ctx, container.ListOptions{All: true})
+	if err != nil {
+		return nil, err
+	}
+	return containers, nil
+}
+
+// ListPodContainers lists all containers associated with pods and returns a map of podUUID to containerName
+func (d *DockerClient) ListPodContainers() (map[string]string, error) {
+	ctx := context.Background()
+
+	// Create filter arguments to filter containers by the "pod_uid" label
+	filterArgs := filters.NewArgs()
+	filterArgs.Add("label", "pod_uid")
+
+	// List containers with the specified label
+	containers, err := d.Client.ContainerList(ctx, container.ListOptions{
+		All:     true,
+		Filters: filterArgs,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Initialize a map to store pod UUIDs to container names
+	podContainers := make(map[string]string)
+
+	// Iterate through the containers and populate the map
+	for _, cnt := range containers {
+		podUID := cnt.Labels["pod_uid"]
+		containerName := cnt.Names[0] // Assuming the container name is in the format "/container_name"
+		podContainers[containerName] = podUID
+	}
+
+	return podContainers, nil
 }

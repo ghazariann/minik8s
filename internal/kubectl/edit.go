@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"minik8s/internal/apiobject"
+	"minik8s/internal/configs"
 	"net/http"
 	"os"
 
@@ -55,7 +56,7 @@ func EditPod(name string, filename string) {
 		log.Fatalf("Error converting pod data to JSON: %v", err)
 	}
 
-	url := fmt.Sprintf("http://localhost:8080/pod?name=%s", name)
+	url := fmt.Sprintf(configs.API_URL+"/pod?name=%s", name)
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		log.Fatalf("Error sending request: %v", err)

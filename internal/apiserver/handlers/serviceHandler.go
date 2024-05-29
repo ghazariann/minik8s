@@ -4,9 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"minik8s/internal/apiobject"
 	"minik8s/internal/apiserver/etcdclient"
+	"minik8s/internal/configs"
 	"net/http"
+	"strconv"
+
+	"minik8s/internal/apiserver/helpers"
+
+	"path"
 
 	"github.com/google/uuid"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -19,7 +26,7 @@ func GetServices(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := etcdclient.Cli.Get(context.Background(), "services/", clientv3.WithPrefix())
+	resp, err := etcdclient.Cli.Get(context.Background(), configs.ETCDServicePath, clientv3.WithPrefix())
 	if err != nil {
 		http.Error(w, "Failed to fetch services: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -55,21 +62,41 @@ func AddService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if exists, _ := etcdclient.KeyExists("services/" + service.Metadata.Name); exists {
-		http.Error(w, "Service already exists", http.StatusConflict)
-		return
-	}
-
+	// if exists, _ := etcdclient.KeyExists(configs.ETCDServicePath + service.Metadata.Name); exists {
+	// 	http.Error(w, "Service already exists", http.StatusConflict)
+	// 	return
+	// }
+	service.Spec.ClusterIP, _ = helpers.AllocateNewClusterIP()
 	service.Metadata.UUID = uuid.New().String()
 	serviceStore := service.ToServiceStore()
-
+	serviceStore.Status.Phase = "pending"
 	serviceStoreJSON, err := json.Marshal(serviceStore)
+
+	for key, value := range service.Spec.Selector {
+		func(key, value string) {
+			svcSelectorURL := path.Join(configs.ETCDServiceSelectorPath, key, value, service.Metadata.UUID)
+
+			if err := etcdclient.PutKey(svcSelectorURL, string(serviceStoreJSON)); err != nil {
+				return
+			}
+			var endpoints []apiobject.Endpoint
+			if endpoints, err = helpers.GetEndpoints(key, value); err != nil {
+				return
+			} else {
+				serviceStore.Status.Endpoints = append(serviceStore.Status.Endpoints, endpoints...)
+			}
+
+			log.Printf("APIServer: endpoints number of endpoints in service " + service.Metadata.Name + " is " + strconv.Itoa(len(serviceStore.Status.Endpoints)))
+
+		}(key, value)
+	}
+	serviceStoreJSON, err = json.Marshal(serviceStore) // added endpoints
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if err := etcdclient.PutKey("services/"+service.Metadata.Name, string(serviceStoreJSON)); err != nil {
+	if err := etcdclient.PutKey(configs.ETCDServicePath+service.Metadata.Name, string(serviceStoreJSON)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -86,7 +113,7 @@ func GetService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := etcdclient.Cli.Get(context.Background(), "services/"+serviceName)
+	resp, err := etcdclient.Cli.Get(context.Background(), configs.ETCDServicePath+serviceName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -126,14 +153,49 @@ func DeleteService(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Service name is required", http.StatusBadRequest)
 		return
 	}
-
-	if _, err := etcdclient.Cli.Delete(context.Background(), "services/"+serviceName); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	serviceResp, _ := etcdclient.Cli.Get(context.Background(), configs.ETCDServicePath+serviceName)
+	if len(serviceResp.Kvs) == 0 {
+		http.Error(w, "Service not found", http.StatusNotFound)
+		return
+	}
+	service := apiobject.ServiceStore{}
+	if err := json.Unmarshal(serviceResp.Kvs[0].Value, &service); err != nil {
+		http.Error(w, "Error decoding service data: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	if _, err := etcdclient.Cli.Delete(context.Background(), configs.ETCDServicePath+serviceName); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	for key, value := range service.Spec.Selector {
+		func(key, value string) {
+			svcSelectorURL := path.Join(configs.ETCDServiceSelectorPath, key, value, service.Metadata.UUID)
+
+			if err := etcdclient.DeleteKey(svcSelectorURL); err != nil {
+				return
+			}
+
+		}(key, value)
+	}
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Service deleted: %s", serviceName)
+}
+
+func UpdateServiceStatus(w http.ResponseWriter, r *http.Request) error {
+	var service apiobject.ServiceStore
+	if err := json.NewDecoder(r.Body).Decode(&service); err != nil {
+		return err
+	}
+
+	serviceStoreJSON, err := json.Marshal(service)
+	if err != nil {
+		return err
+	}
+	if err := etcdclient.PutKey(configs.ETCDServicePath+service.Metadata.Name, string(serviceStoreJSON)); err != nil {
+		return err
+	}
+	return nil
 }
 
 // UpdateService updates an existing service in etcd
@@ -152,7 +214,7 @@ func UpdateService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := etcdclient.PutKey("services/"+service.Metadata.Name, string(serviceStoreJSON)); err != nil {
+	if err := etcdclient.PutKey(configs.ETCDServicePath+service.Metadata.Name, string(serviceStoreJSON)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

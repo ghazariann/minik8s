@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"minik8s/internal/configs"
 	"net/http"
 
 	"github.com/spf13/cobra"
@@ -31,9 +32,36 @@ var CmdDeleteDeployment = &cobra.Command{
 	},
 }
 
+var CmdDeleteService = &cobra.Command{
+	Use:  "service [name]",
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		deleteService(args[0])
+
+	},
+}
+
+func deleteService(name string) {
+	url := fmt.Sprintf(configs.API_URL+"/service?name=%s", name)
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		log.Fatalf("Error creating request: %v", err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatalf("Error making request: %v", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Error reading response body: %v", err)
+	}
+	fmt.Println(string(body))
+}
+
 // DeletePod deletes a pod by name
 func DeletePod(name string) {
-	url := fmt.Sprintf("http://localhost:8080/pod?name=%s", name)
+	url := fmt.Sprintf(configs.API_URL+"/pod?name=%s", name)
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		log.Fatalf("Error creating request: %v", err)
@@ -51,7 +79,7 @@ func DeletePod(name string) {
 }
 
 func deleteDeployment(name string) {
-	url := fmt.Sprintf("http://localhost:8080/deployment?name=%s", name)
+	url := fmt.Sprintf(configs.API_URL+"/deployment?name=%s", name)
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		log.Fatalf("Error creating request: %v", err)
@@ -71,4 +99,5 @@ func deleteDeployment(name string) {
 func init() {
 	DeleteCmd.AddCommand(CmdDeletePod)
 	DeleteCmd.AddCommand(CmdDeleteDeployment)
+	DeleteCmd.AddCommand(CmdDeleteService)
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"minik8s/internal/apiobject"
 	"minik8s/internal/apiserver/etcdclient"
+	"minik8s/internal/configs"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -19,7 +20,7 @@ func GetDeployments(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Assuming 'etcdclient' is an initialized client that can interact with etcd
-	resp, err := etcdclient.Cli.Get(context.Background(), "deployments/", clientv3.WithPrefix())
+	resp, err := etcdclient.Cli.Get(context.Background(), configs.ETCDDeploymentPath, clientv3.WithPrefix())
 	if err != nil {
 		http.Error(w, "Failed to fetch deployments: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -57,7 +58,7 @@ func GetDeployment(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Deployment name is required", http.StatusBadRequest)
 		return
 	}
-	resp, err := etcdclient.Cli.Get(context.Background(), "deployments/"+deploymentName)
+	resp, err := etcdclient.Cli.Get(context.Background(), configs.ETCDDeploymentPath+deploymentName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -93,7 +94,7 @@ func AddDeployment(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	res, _ := etcdclient.GetKey("deployments/" + deployment.Metadata.Name)
+	res, _ := etcdclient.GetKey(configs.ETCDDeploymentPath + deployment.Metadata.Name)
 	if res != "" {
 		http.Error(w, "Deployment already exists", http.StatusBadRequest)
 		return
@@ -108,7 +109,7 @@ func AddDeployment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := etcdclient.PutKey("deployments/"+deployment.Metadata.Name, string(jsonData)); err != nil {
+	if err := etcdclient.PutKey(configs.ETCDDeploymentPath+deployment.Metadata.Name, string(jsonData)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -128,12 +129,12 @@ func DeleteDeployment(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Deployment name is required", http.StatusBadRequest)
 		return
 	}
-	// etcdclient.Cli.Get(context.Background(), "deployments/"+deploymentName)
-	if _, err := etcdclient.Cli.Delete(context.Background(), "deployments/"+deploymentName); err != nil {
+	// etcdclient.Cli.Get(context.Background(), configs.ETCDDeploymentPath+deploymentName)
+	if _, err := etcdclient.Cli.Delete(context.Background(), configs.ETCDDeploymentPath+deploymentName); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// res, _ := etcdclient.GetKey("deployments/" + deploymentName)
+	// res, _ := etcdclient.GetKey(configs.ETCDDeploymentPath + deploymentName)
 	// if res != "" {
 	// 	http.Error(w, "Deployment not deleted", http.StatusInternalServerError)
 	// 	return
@@ -157,7 +158,7 @@ func UpdateDeployment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := etcdclient.PutKey("deployments/"+deployment.Metadata.Name, string(jsonData)); err != nil {
+	if err := etcdclient.PutKey(configs.ETCDDeploymentPath+deployment.Metadata.Name, string(jsonData)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

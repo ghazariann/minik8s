@@ -31,7 +31,7 @@ package apiobject
 
 type ServiceStatus struct {
 	Endpoints []Endpoint
-	Phase     string
+	Phase     string // active, pending, failed
 }
 
 type ServicePort struct {
@@ -41,10 +41,10 @@ type ServicePort struct {
 }
 
 type ServiceSpec struct {
-	Selector map[string]string `yaml:"selector"`
-	Ports    []ServicePort     `yaml:"ports"`
-	// Type      string            `yaml:"type"`
-	// ClusterIP string            `yaml:"clusterIP"`
+	Selector  map[string]string `yaml:"selector"`
+	Ports     []ServicePort     `yaml:"ports"`
+	Type      string            `yaml:"type"`
+	ClusterIP string            `yaml:"clusterIP"`
 }
 
 type Service struct {

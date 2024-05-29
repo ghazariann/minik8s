@@ -1,28 +1,13 @@
-apiVersion: v1
+apiVersion: v1 
 kind: Pod
 metadata:
   labels:
-    app: simple-app
-  name: pod-example3
+    app: echo_server
+  name: pod-example1
   namespace: default
 spec:
   containers:
-    - image: nginx
-      name: web-server
+    - image: yuhaohu/cloud-os
+      name: nettest1
       ports:
         - containerPort: 80
-      resources:
-        requests:
-          memory: "100Mi"
-        limits:
-          memory: "200Mi"
-    - image: httpd:alpine
-      name: http-server
-      ports:
-        - containerPort: 8080
-    - image: redis:alpine
-      name: redis-cache
-      command: ["sh", "-c", "redis-server --appendonly yes"]
-    - image: alpine
-      name: simple-shell
-      command: ["sh", "-c", "while true; do echo hello world; sleep 3600; done"]

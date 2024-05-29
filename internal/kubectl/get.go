@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"minik8s/internal/apiobject"
+	"minik8s/internal/configs"
 	"net/http"
 
 	"github.com/spf13/cobra"
@@ -69,7 +70,7 @@ var CmdGetDeployment = &cobra.Command{
 }
 
 func GetPod(name string) {
-	url := fmt.Sprintf("http://localhost:8080/pod?name=%s", name)
+	url := fmt.Sprintf(configs.API_URL+"/pod?name=%s", name)
 	resp, err := http.Get(url)
 	// Check for HTTP status code
 	if resp.StatusCode == http.StatusNotFound {
@@ -106,7 +107,7 @@ func GetPod(name string) {
 }
 
 func GetDeployment(name string) {
-	url := "http://localhost:8080/deployment?name=" + name
+	url := configs.API_URL + "/deployment?name=" + name
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatalf("Error making request: %v", err)
@@ -135,7 +136,7 @@ func GetDeployment(name string) {
 	fmt.Println(string(formattedJSON))
 }
 func GetAllPods() {
-	url := "http://localhost:8080/pods"
+	url := configs.API_URL + "/pods"
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatalf("Error making request: %v", err)
@@ -152,11 +153,11 @@ func GetAllPods() {
 		log.Fatalf("Error unmarshalling response body: %v", err)
 	}
 	// Print header
-	fmt.Printf("%-20s %-10s\n", "Name", "Status")
+	fmt.Printf("%-20s %-10s %-10s\n", "Name", "Status", "IP")
 
 	// Print each container's name and status
 	for _, pod := range pods {
-		fmt.Printf("%-20s %-10s\n", pod.Metadata.Name, pod.Status.Phase)
+		fmt.Printf("%-20s %-10s %-10s\n", pod.Metadata.Name, pod.Status.Phase, pod.Status.PodIP)
 	}
 	// // Marshal with indentation for pretty printing
 	// formattedJSON, err := json.MarshalIndent(pods, "", "    ")
@@ -168,7 +169,7 @@ func GetAllPods() {
 }
 
 func GetService(name string) {
-	url := fmt.Sprintf("http://localhost:8080/services?name=%s", name)
+	url := fmt.Sprintf(configs.API_URL+"/services?name=%s", name)
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatalf("Error making request: %v", err)
@@ -182,7 +183,7 @@ func GetService(name string) {
 }
 
 func GetAllServices() {
-	url := "http://localhost:8080/all-services"
+	url := configs.API_URL + "/services"
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatalf("Error making request: %v", err)
@@ -192,11 +193,26 @@ func GetAllServices() {
 	if err != nil {
 		log.Fatalf("Error reading response body: %v", err)
 	}
-	fmt.Println(string(body))
+	var services []apiobject.ServiceStore
+
+	if err := json.Unmarshal(body, &services); err != nil {
+		log.Fatalf("Error unmarshalling response body: %v", err)
+	}
+
+	if err != nil {
+		log.Fatalf("Error reading response body: %v", err)
+	}
+
+	fmt.Printf("%-20s  %-10s  %-10s %-10s \n", "Name", "Phase", "Type", "Cluster IP")
+
+	// Print each container's name and status
+	for _, service := range services {
+		fmt.Printf("%-20s %-10s  %-10s %-10s \n", service.Metadata.Name, service.Status.Phase, service.Spec.Type, service.Spec.ClusterIP)
+	}
 }
 
 func ListDeployments() {
-	url := "http://localhost:8080/deployments"
+	url := configs.API_URL + "/deployments"
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatalf("Error sending request to list deployments: %v", err)

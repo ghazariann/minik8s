@@ -2,6 +2,7 @@ package etcdclient
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"time"
 
@@ -41,19 +42,26 @@ func PutKey(key, value string) error {
 	return err
 }
 
-// func GetAllKeys(prefix string) ([]byte, error) {
-// 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-// 	defer cancel()
-// 	resp, err := Cli.Get(ctx, prefix, clientv3.WithPrefix())
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	var results []json.RawMessage
-// 	for _, kv := range resp.Kvs {
-// 		results = append(results, kv.Value)
-// 	}
-// 	return json.Marshal(results)
-// }
+// GetObjects retrieves a list of objects from etcd based on the provided URL and object type
+func GetObjects(url string, objPtr interface{}) ([]interface{}, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	resp, err := Cli.Get(ctx, url)
+	if err != nil {
+		return nil, err
+	}
+
+	var objects []interface{}
+	for _, kv := range resp.Kvs {
+		if err := json.Unmarshal(kv.Value, objPtr); err != nil {
+			return nil, err
+		}
+		objects = append(objects, objPtr)
+	}
+
+	return objects, nil
+}
 
 func DeleteKey(key string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)

@@ -63,7 +63,3 @@ type PodTemplate struct {
 	Metadata Metadata `yaml:"metadata"`
 	Spec     PodSpec  `yaml:"spec"`
 }
-
-type Port struct {
-	ContainerPort int `yaml:"containerPort"`
-}

@@ -5,6 +5,7 @@ go 1.21.0
 toolchain go1.22.2
 
 require (
+	github.com/coreos/go-iptables v0.5.0
 	github.com/docker/docker v26.1.2+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/google/uuid v1.6.0

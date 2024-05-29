@@ -9,12 +9,13 @@ import (
 	"log"
 	"math/rand"
 	"minik8s/internal/apiobject"
+	"minik8s/internal/configs"
 	"net/http"
 	"time"
 )
 
 func GetPodsFromAPIServer() ([]apiobject.PodStore, error) {
-	url := "http://localhost:8080/pods"
+	url := configs.API_URL + "/pods"
 
 	allPods := make([]apiobject.PodStore, 0)
 
@@ -31,7 +32,7 @@ func GetPodsFromAPIServer() ([]apiobject.PodStore, error) {
 }
 
 func GetAllDeploymentsFromAPIServer() ([]apiobject.DeploymentStore, error) {
-	url := "http://localhost:8080/deployments"
+	url := configs.API_URL + "/deployments"
 
 	allDeployments := make([]apiobject.DeploymentStore, 0)
 
@@ -67,15 +68,15 @@ func RandomStr(length int) string {
 	return str
 }
 func AddReplica(deploymentMeta *apiobject.Metadata, pod *apiobject.PodTemplate, num int) error {
-	url := "http://localhost:8080/pods"
+	url := configs.API_URL + "/pods"
 	newPod := apiobject.Pod{}
 	newPod.Metadata = pod.Metadata
 	newPod.Kind = "Pod"
 	newPod.APIVersion = "v1"
 	newPod.Spec = pod.Spec
-	newPod.Metadata.Labels["deployement_name"] = deploymentMeta.Name
-	newPod.Metadata.Labels["deployement_namespace"] = deploymentMeta.Namespace
-	newPod.Metadata.Labels["deployement_uuid"] = deploymentMeta.UUID
+	// newPod.Metadata.Labels["deployement_name"] = deploymentMeta.Name
+	// newPod.Metadata.Labels["deployement_namespace"] = deploymentMeta.Namespace
+	// newPod.Metadata.Labels["deployement_uuid"] = deploymentMeta.UUID
 
 	originalPodName := deploymentMeta.Name
 
@@ -110,7 +111,7 @@ func ReduceReplica(pods []apiobject.PodStore, num int) error {
 	for i := 0; i < num; i++ {
 		// choose a pod to delete randomly
 		pod := pods[rand.Intn(len(pods))]
-		url := fmt.Sprintf("http://localhost:8080/pod?name=%s", pod.Metadata.Name)
+		url := fmt.Sprintf(configs.API_URL+"/pod?name=%s", pod.Metadata.Name)
 		req, _ := http.NewRequest("DELETE", url, nil)
 		_, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -137,7 +138,7 @@ func UpdateDeploymentStatus(filteredPods []apiobject.PodStore, deployment *apiob
 		return nil
 	}
 	deployment.Status.ReadyReplicas = ReadyNums
-	url := fmt.Sprintf("http://localhost:8080/deployment?name=%s", deployment.Metadata.Name)
+	url := fmt.Sprintf(configs.API_URL+"/deployment?name=%s", deployment.Metadata.Name)
 
 	jsonData, _ := json.Marshal(deployment)
 	_, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
@@ -146,24 +147,43 @@ func UpdateDeploymentStatus(filteredPods []apiobject.PodStore, deployment *apiob
 	}
 	return nil
 }
+func DeletePodsByLabel() {
 
-func routine() {
+}
+func DeploymenRoutine() {
 	pods, err := GetPodsFromAPIServer()
 	if err != nil {
 		return
 	}
-	Deployments, err := GetAllDeploymentsFromAPIServer()
+	currentDeployments, err := GetAllDeploymentsFromAPIServer()
 
 	if err != nil {
 		return
 	}
-	DeploymentsMap := make(map[string]string, 0)
-
-	for _, dp := range Deployments {
-		key := dp.Metadata.Namespace + "/" + dp.Metadata.Name
-		DeploymentsMap[key] = dp.Metadata.UUID
+	// Detect deleted deployments and delete corresponding pods
+	for _, prevDeployment := range previousDeployments {
+		found := false
+		for _, currDeployment := range currentDeployments {
+			if prevDeployment.Metadata.UUID == currDeployment.Metadata.UUID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			filteredPodsWithoutDeployment := make([]apiobject.PodStore, 0)
+			for _, pod := range pods {
+				if FilterBySelector(&pod, prevDeployment.Spec.Selector.MatchLabels) {
+					filteredPodsWithoutDeployment = append(filteredPodsWithoutDeployment, pod)
+				}
+			}
+			ReduceReplica(filteredPodsWithoutDeployment, len(filteredPodsWithoutDeployment))
+		}
 	}
-	for _, dp := range Deployments {
+
+	// Update previous deployments for the next iteration
+	previousDeployments = currentDeployments
+
+	for _, dp := range currentDeployments {
 		filteredPods := make([]apiobject.PodStore, 0)
 		for _, pod := range pods {
 			if FilterBySelector(&pod, dp.Spec.Selector.MatchLabels) {
@@ -177,21 +197,14 @@ func routine() {
 		}
 		UpdateDeploymentStatus(filteredPods, &dp)
 	}
-	for _, pod := range pods {
-		if pod.Metadata.Labels["deployement_name"] != "" {
-
-			key := pod.Metadata.Labels["deployement_namespace"] + "/" + pod.Metadata.Labels["deployement_name"]
-			if _, ok := DeploymentsMap[key]; !ok {
-				ReduceReplica([]apiobject.PodStore{pod}, 1)
-			}
-		}
-	}
 
 }
+
+var previousDeployments []apiobject.DeploymentStore
 
 func WatchDeployment() {
 	ticker := time.NewTicker(10 * time.Second)
 	for range ticker.C {
-		routine()
+		DeploymenRoutine()
 	}
 }

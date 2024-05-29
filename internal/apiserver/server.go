@@ -7,8 +7,8 @@ import (
 
 	//"bytes"
 	//"io/ioutil"
-
 	"minik8s/internal/apiserver/handlers"
+	"minik8s/internal/configs"
 )
 
 // TODO convert to gin
@@ -28,6 +28,13 @@ func StartServer() {
 		switch r.Method {
 		case "POST":
 			handlers.UpdatePodStatus(w, r)
+			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
+		}
+	})
+	http.HandleFunc("/serviceStore", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "POST":
+			handlers.UpdateServiceStatus(w, r)
 			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
 		}
 	})
@@ -59,8 +66,6 @@ func StartServer() {
 			handlers.GetService(w, r)
 		case "DELETE":
 			handlers.DeleteService(w, r)
-		case "PUT":
-			handlers.UpdateService(w, r)
 		default:
 			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
 		}
@@ -87,8 +92,8 @@ func StartServer() {
 			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
 		}
 	})
-	fmt.Println("API Server starting on port 8080...")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	fmt.Println("API Server starting on port " + configs.API_SERVER_PORT + " ...")
+	if err := http.ListenAndServe(":"+configs.API_SERVER_PORT, nil); err != nil {
 		log.Fatal(err)
 	}
 }

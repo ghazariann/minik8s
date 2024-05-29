@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"minik8s/internal/apiobject"
+	"minik8s/internal/configs"
 	"net/http"
 	"os"
 
@@ -62,7 +63,7 @@ func CreatePodFromYAML(filename string) {
 		log.Fatalf("Error converting pod data to JSON: %v", err)
 	}
 
-	url := "http://localhost:8080/pods"
+	url := configs.API_URL + "/pods"
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		log.Fatalf("Error sending request: %v", err)
@@ -91,7 +92,7 @@ func CreateServiceFromYAML(filename string) {
 		log.Fatalf("Error converting service data to JSON: %v", err)
 	}
 
-	url := "http://localhost:8080/services"
+	url := configs.API_URL + "/services"
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		log.Fatalf("Error sending request: %v", err)
@@ -120,7 +121,7 @@ func CreateDeploymentFromYAML(filename string) {
 		log.Fatalf("Error converting deployment data to JSON: %v", err)
 	}
 
-	url := "http://localhost:8080/deployments"
+	url := configs.API_URL + "/deployments"
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		log.Fatalf("Error sending request to create deployment: %v", err)

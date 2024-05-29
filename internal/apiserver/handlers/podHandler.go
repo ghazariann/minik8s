@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"minik8s/internal/apiobject"
 	"minik8s/internal/apiserver/etcdclient"
+	"minik8s/internal/apiserver/helpers"
+	"minik8s/internal/configs"
 	"net/http"
+	"path"
 
 	"github.com/google/uuid"
 
@@ -18,8 +21,8 @@ func GetPods(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Only GET method is supported", http.StatusMethodNotAllowed)
 		return
 	}
-	// etcdclient.Cli.Delete(context.Background(), "pods/", clientv3.WithPrefix())
-	resp, err := etcdclient.Cli.Get(context.Background(), "pods/", clientv3.WithPrefix())
+	// etcdclient.Cli.Delete(context.Background(), configs.ETCDPodPath, clientv3.WithPrefix())
+	resp, err := etcdclient.Cli.Get(context.Background(), configs.ETCDPodPath, clientv3.WithPrefix())
 	if err != nil {
 		http.Error(w, "Failed to fetch deployments: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -58,7 +61,7 @@ func AddPod(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	res, _ := etcdclient.KeyExists("pods/" + pod.Metadata.Name)
+	res, _ := etcdclient.KeyExists(configs.ETCDPodPath + pod.Metadata.Name)
 	if res {
 		http.Error(w, "Pod already exists", http.StatusConflict)
 		return
@@ -70,13 +73,12 @@ func AddPod(w http.ResponseWriter, r *http.Request) {
 	podStore.Status.Phase = apiobject.PodPending
 
 	podStoreJson, err := json.Marshal(podStore)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	// TODO add namespace + name
-	if err := etcdclient.PutKey("pods/"+pod.Metadata.Name, string(podStoreJson)); err != nil {
+	if err := etcdclient.PutKey(configs.ETCDPodPath+pod.Metadata.Name, string(podStoreJson)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -98,7 +100,7 @@ func GetPod(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Retrieve pod data from etcd
-	resp, err := etcdclient.Cli.Get(context.Background(), "pods/"+podName)
+	resp, err := etcdclient.Cli.Get(context.Background(), configs.ETCDPodPath+podName)
 	if err != nil {
 		http.Error(w, "Failed to fetch pod: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -149,7 +151,7 @@ func UpdatePodStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Retrieve the existing pod data from etcd
-	resp, err := etcdclient.Cli.Get(context.Background(), "pods/"+podName)
+	resp, err := etcdclient.Cli.Get(context.Background(), configs.ETCDPodPath+podName)
 	if err != nil {
 		http.Error(w, "Failed to fetch pod: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -168,9 +170,10 @@ func UpdatePodStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update the pod data
+	// Update the pod data ( status in running and has weave IP)
 	podStore.Status = pod.Status
-
+	// move to backend
+	helpers.UpdateEndPoints(&podStore)
 	// Marshal the updated pod data
 	podStoreJson, err := json.Marshal(podStore)
 	if err != nil {
@@ -179,7 +182,7 @@ func UpdatePodStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update the pod in etcd
-	if err := etcdclient.PutKey("pods/"+podName, string(podStoreJson)); err != nil {
+	if err := etcdclient.PutKey(configs.ETCDPodPath+podName, string(podStoreJson)); err != nil {
 		http.Error(w, "Failed to update pod: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -205,7 +208,7 @@ func UpdatePod(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Retrieve the existing pod data from etcd
-	resp, err := etcdclient.Cli.Get(context.Background(), "pods/"+podName)
+	resp, err := etcdclient.Cli.Get(context.Background(), configs.ETCDPodPath+podName)
 	if err != nil {
 		http.Error(w, "Failed to fetch pod: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -236,7 +239,7 @@ func UpdatePod(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update the pod in etcd
-	if err := etcdclient.PutKey("pods/"+podName, string(podStoreJson)); err != nil {
+	if err := etcdclient.PutKey(configs.ETCDPodPath+podName, string(podStoreJson)); err != nil {
 		http.Error(w, "Failed to update pod: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -260,10 +263,26 @@ func DeletePod(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Delete the pod from etcd
-	err := etcdclient.DeleteKey("pods/" + podName)
+	podRes, err := etcdclient.GetKey(configs.ETCDPodPath + podName)
+
+	if podRes == "" {
+		http.Error(w, "Pod "+podName+" does not exists: "+err.Error(), http.StatusInternalServerError)
+	}
+	pod := apiobject.PodStore{}
+	err = json.Unmarshal([]byte(podRes), &pod)
+	if err != nil {
+		http.Error(w, "Failed to decode pod data: "+err.Error(), http.StatusInternalServerError)
+	}
+	err = etcdclient.DeleteKey(configs.ETCDPodPath + podName)
+
 	if err != nil {
 		http.Error(w, "Failed to delete pod: "+err.Error(), http.StatusInternalServerError)
 		return
+	}
+	// delete endpoints
+	for key, value := range pod.Metadata.Labels {
+		endpointsKVURL := path.Join(configs.ETCDEndpointPath, key, value, pod.Metadata.UUID)
+		etcdclient.DeleteKey(endpointsKVURL)
 	}
 	// Respond with confirmation
 	fmt.Fprintf(w, "Pod deleted: %s", podName)
