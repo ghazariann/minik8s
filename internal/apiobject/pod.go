@@ -40,6 +40,14 @@ type PodStore struct {
 	Status    PodStatus `yaml:"status" json:"status"`
 }
 
+// type ContainerPort struct {
+// 	Name          string `yaml:"name" json:"name"`
+// 	HostPort      string `yaml:"hostPort" json:"hostPort"`
+// 	ContainerPort string `yaml:"containerPort" json:"containerPort"`
+// 	Protocol      string `yaml:"protocol" json:"protocol"`
+// 	HostIP        string `yaml:"hostIP" json:"hostIP"`
+// }
+
 // Container represents a container within a Pod.
 type Container struct {
 	Name    string   `yaml:"name" json:"name"`

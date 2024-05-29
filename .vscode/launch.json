@@ -16,7 +16,7 @@
             "type": "go",
             "request": "launch",
             "program": "${workspaceFolder}/cmd/kubectl/main.go",
-            "args": ["edit", "pod", "pod-example1", "-f", "testdata/newPod.yaml"],
+            "args": ["get", "pod", "mongodb-deployment-hoyte"],
             "env": {},
             "preLaunchTask": "build kubectl",
             "cwd": "${workspaceFolder}"

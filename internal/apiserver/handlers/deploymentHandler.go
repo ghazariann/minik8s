@@ -143,15 +143,15 @@ func DeleteDeployment(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateDeployment(w http.ResponseWriter, r *http.Request) {
-	var deployment apiobject.Deployment
+	var deployment apiobject.DeploymentStore
 	if err := json.NewDecoder(r.Body).Decode(&deployment); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	deploymentStore := deployment.ToDeploymentStore()
+	// deploymentStore := deployment.ToDeploymentStore()
 
-	jsonData, err := json.Marshal(deploymentStore)
+	jsonData, err := json.Marshal(deployment)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

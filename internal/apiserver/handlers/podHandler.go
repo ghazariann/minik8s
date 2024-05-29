@@ -7,7 +7,6 @@ import (
 	"minik8s/internal/apiobject"
 	"minik8s/internal/apiserver/etcdclient"
 	"net/http"
-	"time"
 
 	"github.com/google/uuid"
 
@@ -130,7 +129,7 @@ func GetPod(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(podStoreJson)
-	fmt.Fprintf(w, "Pod fetched: %s", podName)
+	// fmt.Fprintf(w, "Pod fetched: %s", podName)
 }
 func UpdatePodStatus(w http.ResponseWriter, r *http.Request) {
 	// Ensure the method is PUT
@@ -268,47 +267,4 @@ func DeletePod(w http.ResponseWriter, r *http.Request) {
 	}
 	// Respond with confirmation
 	fmt.Fprintf(w, "Pod deleted: %s", podName)
-}
-
-func GetAllPods() ([]byte, error) {
-	return getPodsByCondition("")
-}
-
-func getUnscheduledPods() ([]byte, error) {
-	return getPodsByCondition("NodeName")
-}
-
-func getPodsByCondition(filterKey string) ([]byte, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	resp, err := etcdclient.Cli.Get(ctx, "pods/", clientv3.WithPrefix())
-	if err != nil {
-		return nil, err
-	}
-	var podse []apiobject.Pod
-	for _, kv := range resp.Kvs {
-		var pod apiobject.Pod
-		if err := json.Unmarshal(kv.Value, &pod); err == nil {
-			if filterKey == "" || pod.Spec.NodeName == "" {
-				podse = append(podse, pod)
-			}
-		}
-	}
-	return json.Marshal(podse)
-}
-
-func filterPodsBySelector(pods []apiobject.Pod, selector map[string]string) (selectedPods []apiobject.Pod) {
-	for _, pod := range pods {
-		matches := true
-		for key, value := range selector {
-			if pod.Metadata.Labels[key] != value {
-				matches = false
-				break
-			}
-		}
-		if matches {
-			selectedPods = append(selectedPods, pod)
-		}
-	}
-	return selectedPods
 }

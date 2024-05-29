@@ -139,8 +139,8 @@ func UpdateDeploymentStatus(filteredPods []apiobject.PodStore, deployment *apiob
 	deployment.Status.ReadyReplicas = ReadyNums
 	url := fmt.Sprintf("http://localhost:8080/deployment?name=%s", deployment.Metadata.Name)
 
-	_, err := http.NewRequest("PUT", url, nil)
-
+	jsonData, _ := json.Marshal(deployment)
+	_, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,6 @@ func routine() {
 	if err != nil {
 		return
 	}
-
 	Deployments, err := GetAllDeploymentsFromAPIServer()
 
 	if err != nil {

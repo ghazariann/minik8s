@@ -6,6 +6,8 @@ import (
 	"log"
 	"minik8s/internal/apiobject" // Ensure correct import path
 
+	weave "minik8s/utils"
+
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
@@ -23,7 +25,7 @@ func NewRuntimeManager(dockerClient *DockerClient) *RuntimeManager {
 // CreatePod creates a pod with the specified configuration
 func (r *RuntimeManager) CreatePod(pod *apiobject.PodStore) error {
 	ctx := context.Background()
-
+	pauseID := pod.Metadata.Name + "_pause"
 	// Pull the pause image
 	pauseImage := "registry.aliyuncs.com/google_containers/pause:3.6"
 	if !r.DockerClient.ImageExists(pauseImage) {
@@ -32,22 +34,39 @@ func (r *RuntimeManager) CreatePod(pod *apiobject.PodStore) error {
 			return err
 		}
 	}
-
 	// Create the pause container if not present
 	pauseContainerName := pod.Metadata.Name + "_pause"
 	if !r.DockerClient.ContainerExists(pauseContainerName) {
-		pauseResp, err := r.DockerClient.Client.ContainerCreate(ctx, &container.Config{
-			Image: pauseImage,
-		}, nil, nil, nil, pauseContainerName)
+		pauseCntConfig := container.Config{
+			Image:   pauseImage,
+			Volumes: nil,
+			Env:     nil,
+			//TODO
+		}
+		pauseHostConfig := container.HostConfig{IpcMode: "shareable"}
+		pauseResp, err := r.DockerClient.Client.ContainerCreate(ctx, &pauseCntConfig, &pauseHostConfig, nil, nil, pauseContainerName)
+		pauseID = pauseResp.ID
 		if err != nil {
 			log.Printf("Failed to create pause container: %v", err)
 			return err
 		}
 
 		// Start the pause container
-		if err := r.DockerClient.Client.ContainerStart(ctx, pauseResp.ID, container.StartOptions{}); err != nil {
+		if err := r.DockerClient.Client.ContainerStart(ctx, pauseID, container.StartOptions{}); err != nil {
 			log.Printf("Failed to start pause container: %v", err)
 			return err
+		}
+		// [Weave网络] 为pause容器添加网络
+		if pod.Status.PodIP == "" {
+			res, err := weave.AttachContainer(pauseID)
+			if err != nil {
+				log.Fatal("Pause Container", err.Error()+res)
+				return err
+			}
+
+			// TODO: add podIp to pod status
+			pod.Status.PodIP = res
+			log.Printf("WeaveAttach", "WeaveAttach res "+res)
 		}
 	}
 
@@ -60,16 +79,31 @@ func (r *RuntimeManager) CreatePod(pod *apiobject.PodStore) error {
 				continue
 			}
 		}
-
+		pauseRef := "container:" + pauseID
 		contConf := container.Config{
 			Image: containerSpec.Image,
 			Cmd:   containerSpec.Command,
+			// Env:          option.Env,
+			// Tty:          option.Tty,
+			// Labels:       option.Labels,
+			// Entrypoint:   option.Entrypoint,
+			// Volumes:      option.Volumes,
+			// ExposedPorts: exposedPortSet,
 		}
 		hostConf := container.HostConfig{
-			// PortBindings: portBindings,
-			NetworkMode: container.NetworkMode(fmt.Sprintf("container:%s", pauseContainerName)),
-		}
+			// Binds:        option.Binds,
+			// PortBindings: option.PortBindings,
 
+			// VolumesFrom:  option.VolumesFrom,
+			// Links:        option.Links,
+			// Resources: container.Resources{
+			// 	Memory:   option.MemoryLimit,
+			// 	NanoCPUs: option.CPUResourceLimit,
+			// },
+			PidMode:     container.PidMode(pauseRef),
+			IpcMode:     container.IpcMode(pauseRef),
+			NetworkMode: container.NetworkMode(pauseRef),
+		}
 		// Create the application container if not present
 		containerName := fmt.Sprintf("%s_%s", pod.Metadata.Name, containerSpec.Name)
 		if !r.DockerClient.ContainerExists(containerName) {

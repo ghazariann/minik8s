@@ -43,8 +43,28 @@ func StartServer() {
 			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
 		}
 	})
-	http.HandleFunc("/services", handlers.HandleServices)
-	http.HandleFunc("/all-services", handlers.HandleAllServices)
+	http.HandleFunc("/services", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "GET":
+			handlers.GetServices(w, r)
+		case "POST":
+			handlers.AddService(w, r)
+		default:
+			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
+		}
+	})
+	http.HandleFunc("/service", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "GET":
+			handlers.GetService(w, r)
+		case "DELETE":
+			handlers.DeleteService(w, r)
+		case "PUT":
+			handlers.UpdateService(w, r)
+		default:
+			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
+		}
+	})
 	http.HandleFunc("/deployments", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "GET":
@@ -61,7 +81,7 @@ func StartServer() {
 			handlers.GetDeployment(w, r)
 		case "DELETE":
 			handlers.DeleteDeployment(w, r)
-		case "PUT":
+		case "POST":
 			handlers.UpdateDeployment(w, r)
 		default:
 			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
