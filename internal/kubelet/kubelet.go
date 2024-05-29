@@ -3,7 +3,6 @@ package kubelet
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -43,18 +42,8 @@ func RegisterNode() error {
 	}
 
 	targetURL := configs.GetApiServerUrl() + configs.NodesURL
-
-	// 发送POST请求
-	code, res, _ := netrequest.PostRequestByTarget(targetURL, node)
-
-	if code != http.StatusCreated {
-		bodyBytes, err := json.Marshal(res)
-		if err != nil {
-			return err
-		}
-		return errors.New(string(bodyBytes))
-	}
-
+	nodeJson, _ := json.Marshal(node)
+	fmt.Printf(targetURL, nodeJson)
 	return nil
 }
 
