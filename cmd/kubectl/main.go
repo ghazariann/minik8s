@@ -17,6 +17,8 @@ func main() {
 	rootCmd.AddCommand(
 		kubectl.CreateCmd,
 		kubectl.GetCmd,
+		kubectl.DeleteCmd,
+		kubectl.EditCmd,
 	)
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatalf("Error executing kubectl: %v", err)

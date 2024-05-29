@@ -2,11 +2,21 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Debug Specific File",
+            "type": "go",
+            "request": "launch",
+            "program": "${file}",
+            "env": {},
+            "args": [],
+            "showLog": true,
+            "mode": "debug"
+        },
+        {
             "name": "Launch kubectl",
             "type": "go",
             "request": "launch",
             "program": "${workspaceFolder}/cmd/kubectl/main.go",
-            "args": ["create", "deployment", "-f", "testdata/deployment.yaml"],
+            "args": ["edit", "pod", "pod-example1", "-f", "testdata/newPod.yaml"],
             "env": {},
             "preLaunchTask": "build kubectl",
             "cwd": "${workspaceFolder}"

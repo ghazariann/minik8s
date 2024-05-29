@@ -1,9 +1,11 @@
 package kubectl
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"minik8s/internal/apiobject"
 	"net/http"
 
 	"github.com/spf13/cobra"
@@ -60,14 +62,25 @@ var CmdGetDeployments = &cobra.Command{
 var CmdGetDeployment = &cobra.Command{
 	Use:   "deployment [name]",
 	Short: "Get One deployment",
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		ListDeployments()
+		GetDeployment(args[0])
 	},
 }
 
 func GetPod(name string) {
-	url := fmt.Sprintf("http://localhost:8080/pods?name=%s", name)
+	url := fmt.Sprintf("http://localhost:8080/pod?name=%s", name)
 	resp, err := http.Get(url)
+	// Check for HTTP status code
+	if resp.StatusCode == http.StatusNotFound {
+		fmt.Printf("Pod %s not found\n", name)
+		return
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("Failed to fetch pod: %s\n", resp.Status)
+		return
+	}
 	if err != nil {
 		log.Fatalf("Error making request: %v", err)
 	}
@@ -76,11 +89,53 @@ func GetPod(name string) {
 	if err != nil {
 		log.Fatalf("Error reading response body: %v", err)
 	}
-	fmt.Println(string(body))
+
+	// Unmarshal the JSON response into a PodStore
+	var podStore apiobject.PodStore
+	if err := json.Unmarshal(body, &podStore); err != nil {
+		log.Fatalf("Error unmarshalling response body: %v", err)
+	}
+
+	// Marshal with indentation for pretty printing
+	formattedJSON, err := json.MarshalIndent(podStore, "", "    ")
+	if err != nil {
+		log.Fatalf("Error formatting JSON: %v", err)
+	}
+
+	fmt.Println(string(formattedJSON))
 }
 
+func GetDeployment(name string) {
+	url := "http://localhost:8080/deployment?name=" + name
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Fatalf("Error making request: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		fmt.Printf("Deployment %s not found\n", name)
+		return
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Error reading response body: %v", err)
+	}
+	// Unmarshal the JSON response into a PodStore
+	var dep apiobject.DeploymentStore
+	if err := json.Unmarshal(body, &dep); err != nil {
+		log.Fatalf("Error unmarshalling response body: %v", err)
+	}
+
+	// Marshal with indentation for pretty printing
+	formattedJSON, err := json.MarshalIndent(dep, "", "    ")
+	if err != nil {
+		log.Fatalf("Error formatting JSON: %v", err)
+	}
+
+	fmt.Println(string(formattedJSON))
+}
 func GetAllPods() {
-	url := "http://localhost:8080/all-pods"
+	url := "http://localhost:8080/pods"
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatalf("Error making request: %v", err)
@@ -90,7 +145,26 @@ func GetAllPods() {
 	if err != nil {
 		log.Fatalf("Error reading response body: %v", err)
 	}
-	fmt.Println(string(body))
+
+	// Unmarshal the JSON response into a slice of PodStore
+	var pods []apiobject.PodStore
+	if err := json.Unmarshal(body, &pods); err != nil {
+		log.Fatalf("Error unmarshalling response body: %v", err)
+	}
+	// Print header
+	fmt.Printf("%-20s %-10s\n", "Name", "Status")
+
+	// Print each container's name and status
+	for _, pod := range pods {
+		fmt.Printf("%-20s %-10s\n", pod.Metadata.Name, pod.Status.Phase)
+	}
+	// // Marshal with indentation for pretty printing
+	// formattedJSON, err := json.MarshalIndent(pods, "", "    ")
+	// if err != nil {
+	// 	log.Fatalf("Error formatting JSON: %v", err)
+	// }
+
+	// fmt.Println(string(formattedJSON))
 }
 
 func GetService(name string) {
@@ -129,10 +203,22 @@ func ListDeployments() {
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
+
+	var deployments []apiobject.DeploymentStore
+	if err := json.Unmarshal(body, &deployments); err != nil {
+		log.Fatalf("Error unmarshalling response body: %v", err)
+	}
+
 	if err != nil {
 		log.Fatalf("Error reading response body: %v", err)
 	}
-	fmt.Println(string(body))
+
+	fmt.Printf("%-20s  %-10s  %-10s\n", "Name", "Replicas", "Ready Replicas")
+
+	// Print each container's name and status
+	for _, deployment := range deployments {
+		fmt.Printf("%-20s %-10d  %-10d\n", deployment.Metadata.Name, deployment.Spec.Replicas, deployment.Status.ReadyReplicas)
+	}
 }
 
 func init() {

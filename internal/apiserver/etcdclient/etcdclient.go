@@ -55,3 +55,27 @@ func GetAllKeys(prefix string) ([]byte, error) {
 	}
 	return json.Marshal(results)
 }
+
+func DeleteKey(key string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	_, err := Cli.Delete(ctx, key)
+	return err
+}
+
+func UpdateKey(key, value string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	_, err := Cli.Put(ctx, key, value)
+	return err
+}
+
+func KeyExists(key string) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	resp, err := Cli.Get(ctx, key)
+	if err != nil {
+		return false, err
+	}
+	return len(resp.Kvs) > 0, nil
+}

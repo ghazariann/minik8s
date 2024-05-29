@@ -44,7 +44,7 @@ func HandleServices(w http.ResponseWriter, r *http.Request) {
 		var ep endpoints.Endpoint
 		ep.ServiceName = service.Name
 		for _, pod := range matchedPods {
-			ep.IPs = append(ep.IPs, pod.IP) // pod结构中有IP字段
+			ep.IPs = append(ep.IPs, pod.Metadata.UUID) // WRONG !! TODO: Get pod IP
 		}
 		epData, err := json.Marshal(ep)
 		if err != nil {

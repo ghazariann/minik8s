@@ -57,12 +57,34 @@ func GetDeployment(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Deployment name is required", http.StatusBadRequest)
 		return
 	}
-	deploymentData, err := etcdclient.GetKey("deployments/" + deploymentName)
+	resp, err := etcdclient.Cli.Get(context.Background(), "deployments/"+deploymentName)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintf(w, "Deployment Data: %s", deploymentData)
+	if len(resp.Kvs) == 0 {
+		http.Error(w, "Deployment not found", http.StatusNotFound)
+		return
+	}
+	// Unmarshal the pod data
+	var deploymentStore apiobject.DeploymentStore
+	if err := json.Unmarshal(resp.Kvs[0].Value, &deploymentStore); err != nil {
+		http.Error(w, "Error decoding deployment data: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Marshal the pod data to JSON
+	deploymentStoreJson, err := json.Marshal(deploymentStore)
+	if err != nil {
+		http.Error(w, "Error encoding pod data: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Set content type and send the response
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(deploymentStoreJson)
 }
 
 func AddDeployment(w http.ResponseWriter, r *http.Request) {
@@ -71,15 +93,11 @@ func AddDeployment(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	// Check if the deployment already exists
-	// _, err := etcdclient.GetKey("deployments/" + deployment.Metadata.Name)
-	// if err == nil {
-	// 	http.Error(w, message, http.StatusConflict)
-	// log.Printf("APIServer: %s", message) // Adjust logging based on your setup
-	// 	return
-	// }
-
+	res, _ := etcdclient.GetKey("deployments/" + deployment.Metadata.Name)
+	if res != "" {
+		http.Error(w, "Deployment already exists", http.StatusBadRequest)
+		return
+	}
 	deployment.Metadata.UUID = uuid.New().String()
 
 	deploymentStore := deployment.ToDeploymentStore()
@@ -97,4 +115,53 @@ func AddDeployment(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprintf(w, "Deployment created: %s", deployment.Metadata.Name)
+}
+
+func DeleteDeployment(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "DELETE" {
+		http.Error(w, "Only DELETE method is supported", http.StatusMethodNotAllowed)
+		return
+	}
+
+	deploymentName := r.URL.Query().Get("name")
+	if deploymentName == "" {
+		http.Error(w, "Deployment name is required", http.StatusBadRequest)
+		return
+	}
+	// etcdclient.Cli.Get(context.Background(), "deployments/"+deploymentName)
+	if _, err := etcdclient.Cli.Delete(context.Background(), "deployments/"+deploymentName); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// res, _ := etcdclient.GetKey("deployments/" + deploymentName)
+	// if res != "" {
+	// 	http.Error(w, "Deployment not deleted", http.StatusInternalServerError)
+	// 	return
+	// }
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Deployment deleted: %s", deploymentName)
+}
+
+func UpdateDeployment(w http.ResponseWriter, r *http.Request) {
+	var deployment apiobject.Deployment
+	if err := json.NewDecoder(r.Body).Decode(&deployment); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	deploymentStore := deployment.ToDeploymentStore()
+
+	jsonData, err := json.Marshal(deploymentStore)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := etcdclient.PutKey("deployments/"+deployment.Metadata.Name, string(jsonData)); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Deployment updated: %s", deployment.Metadata.Name)
 }
