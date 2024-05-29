@@ -14,7 +14,7 @@ import (
 // TODO convert to gin
 func StartServer() {
 	// http.HandleFunc("/pods", handlers.HandlePods)
-	http.HandleFunc("/pods", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(configs.PodsURL, func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "GET":
 			handlers.GetPods(w, r)
@@ -24,21 +24,21 @@ func StartServer() {
 			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
 		}
 	})
-	http.HandleFunc("/podStore", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(configs.PodStoreUrl, func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "POST":
 			handlers.UpdatePodStatus(w, r)
 			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
 		}
 	})
-	http.HandleFunc("/serviceStore", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(configs.ServiceStoreURL, func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "POST":
 			handlers.UpdateServiceStatus(w, r)
 			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
 		}
 	})
-	http.HandleFunc("/pod", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(configs.PodUrl, func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "GET":
 			handlers.GetPod(w, r)
@@ -50,7 +50,7 @@ func StartServer() {
 			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
 		}
 	})
-	http.HandleFunc("/services", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(configs.ServicesURL, func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "GET":
 			handlers.GetServices(w, r)
@@ -60,7 +60,7 @@ func StartServer() {
 			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
 		}
 	})
-	http.HandleFunc("/service", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(configs.ServiceURL, func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "GET":
 			handlers.GetService(w, r)
@@ -70,7 +70,7 @@ func StartServer() {
 			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
 		}
 	})
-	http.HandleFunc("/deployments", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(configs.DeploymentsUrl, func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "GET":
 			handlers.GetDeployments(w, r)
@@ -80,7 +80,7 @@ func StartServer() {
 			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
 		}
 	})
-	http.HandleFunc("/deployment", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(configs.DeploymentUrl, func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "GET":
 			handlers.GetDeployment(w, r)

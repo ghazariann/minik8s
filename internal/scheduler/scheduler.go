@@ -1,105 +1,114 @@
 package scheduler
 
-import (
-	//"context"
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"log"
-	"minik8s/internal/apiobject"
-	"net/http"
-	"time"
-)
+// import (
+// 	"encoding/json"
+// 	"fmt"
+// 	"log"
+// 	"minik8s/internal/apiobject"
+// 	"minik8s/internal/configs"
+// 	"net/http"
+// 	"strconv"
+// )
 
-var apiServerURL = "http://localhost:8080"
+// type SchedulePolicy string
 
-// StartScheduler starts the scheduler service
-func StartScheduler() {
-	ticker := time.NewTicker(10 * time.Second)
-	for range ticker.C {
-		schedulePods()
-	}
-}
+// const (
+// 	RoundRobin SchedulePolicy = "RoundRobin"
+// 	Random     SchedulePolicy = "Random"
+// )
 
-func schedulePods() {
-	// 获取未调度的 Pods
-	resp, err := http.Get(apiServerURL + "/unscheduled-pods")
-	if err != nil {
-		log.Printf("Error fetching unscheduled pods: %v", err)
-		return
-	}
-	defer resp.Body.Close()
+// type Scheduler struct {
+// 	polocy        SchedulePolicy
+// 	apiServerHost string
+// 	apiServerPort int
+// }
 
-	var pods []apiobject.Pod
-	if err := json.NewDecoder(resp.Body).Decode(&pods); err != nil {
-		log.Printf("Error decoding unscheduled pods: %v", err)
-		return
-	}
+// func (sch *Scheduler) GetAllNodes() (nodes []apiobject.NodeStore, err error) {
+// 	uri := configs.GetApiServerUrl() + configs.NodesURL
+// 	var allNodes []apiobject.NodeStore
+// 	code, err := netrequest.GetRequestByTarget(uri, &allNodes, "data")
 
-	for _, pod := range pods {
-		schedulePod(pod)
-	}
-}
+// 	if err != nil {
+// 		k8log.ErrorLog("Scheduler", "get all nodes failed "+err.Error())
+// 		return nil, err
+// 	}
 
-func schedulePod(pod apiobject.Pod) {
-	// 简单的轮询调度到第一个节点
-	nodeURL := "http://localhost:10250" // 假设节点 URL 已知
-	resp, err := http.Post(nodeURL+"/startPod", "application/json", jsonEncode(pod))
-	if err != nil {
-		log.Printf("Failed to schedule pod %s: %v", pod.Metadata.Name, err)
-		return
-	}
-	defer resp.Body.Close()
+// 	if code != http.StatusOK {
+// 		k8log.ErrorLog("Scheduler", "get all nodes failed, code: "+fmt.Sprint(code))
+// 		return nil, fmt.Errorf("get all nodes failed, code: %d", code)
+// 	}
 
-	if err := updatePodStatusAndNode(pod.Metadata.Name, "nodeNameForExample", "Scheduled"); err != nil {
-		log.Printf("Failed to update status for pod %s: %v", pod.Metadata.Name, err)
-		return
-	}
+// 	return allNodes, nil
+// }
 
-	log.Printf("Pod %s scheduled to %s", pod.Metadata.Name, nodeURL)
-}
+// func (sch *Scheduler) RequestSchedule() {
+// 	// TODO
+// 	allNodes, err := sch.GetAllNodes()
 
-// updatePodStatusAndNode 向 API Server 发送更新 Pod 状态和节点名的请求
-func updatePodStatusAndNode(podName, nodeName, status string) error {
-	updateData := map[string]string{
-		"name":     podName,
-		"nodeName": nodeName,
-		"status":   status,
-	}
+// 	if err != nil {
+// 		log.Printf("Scheduler", "获取所有节点失败"+err.Error())
+// 	}
 
-	data, err := json.Marshal(updateData)
-	if err != nil {
-		return fmt.Errorf("error marshaling update data: %v", err)
-	}
+// 	// 调度的时候筛选存活的节点
+// 	nodes := make([]apiobject.NodeStore, 0)
+// 	for _, node := range allNodes {
+// 		if node.Status.Condition == apiobject.Ready {
+// 			nodes = append(nodes, node)
+// 		}
+// 	}
 
-	// 假设 API Server 的更新接口 URL 如下
-	url := apiServerURL + "/updatePod"
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(data))
-	if err != nil {
-		return fmt.Errorf("error creating request: %v", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
+// 	// 反序列化pod
+// 	podStore := &apiobject.PodStore{}
+// 	err = json.Unmarshal([]byte(parsedMsg.Content), &podStore)
+// 	if err != nil {
+// 		log.Printf("Scheduler", "反序列化pod失败")
+// 		return
+// 	}
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("error sending update request to API Server: %v", err)
-	}
-	defer resp.Body.Close()
+// 	var scheduledNode string
 
-	if resp.StatusCode != http.StatusOK {
-		body, _ := ioutil.ReadAll(resp.Body)
-		return fmt.Errorf("API Server returned failure for update request: Status %d, Body: %s", resp.StatusCode, string(body))
-	}
+// 	// 如果在pod中指定了node
+// 	if podStore.Spec.NodeName != "" {
+// 		// 检查node是否存在
+// 		for _, node := range nodes {
+// 			if node.GetName() == podStore.Spec.NodeName {
+// 				scheduledNode = podStore.Spec.NodeName
+// 			}
+// 		}
+// 	}
 
-	return nil
-}
+// 	// 如果未指定node或者指定的node无效，则选择一个节点
+// 	if scheduledNode == "" {
+// 		scheduledNode = sch.ChooseFromNodes(nodes)
+// 	}
 
-func jsonEncode(pod apiobject.Pod) *bytes.Buffer {
-	data, err := json.Marshal(pod)
-	if err != nil {
-		log.Printf("Error encoding pod: %v", err)
-		return nil
-	}
-	return bytes.NewBuffer(data)
-}
+// 	if scheduledNode == "" {
+// 		log.Printf("Scheduler", "没有可用的节点")
+// 		return
+// 	}
+
+// 	// 为pod添加node信息
+// 	podStore.Spec.NodeName = scheduledNode
+
+// 	// 更新Apiserver中的Pod信息
+// 	URL := stringutil.Replace(config.PodSpecURL, config.URL_PARAM_NAMESPACE_PART, podStore.GetPodNamespace())
+// 	URL = stringutil.Replace(URL, config.URL_PARAM_NAME_PART, podStore.GetPodName())
+// 	URL = config.GetAPIServerURLPrefix() + URL
+
+// 	code, _, err := netrequest.PutRequestByTarget(URL, podStore)
+// 	if err != nil {
+// 		log.Printf("Scheduler", "更新Pod信息失败"+err.Error())
+// 		return
+// 	}
+// 	if code != http.StatusOK {
+// 		log.Printf("Scheduler", "更新Pod信息失败,code: "+strconv.Itoa(code))
+// 		return
+// 	}
+
+// 	podUpdate := &entity.PodUpdate{
+// 		Action:    message.CREATE,
+// 		PodTarget: *podStore,
+// 		Node:      scheduledNode,
+// 	}
+// 	message.PublishUpdatePod(podUpdate)
+// }

@@ -30,7 +30,7 @@ func NewKubeProxy() (*KubeProxy, error) {
 	}, nil
 }
 func (p *KubeProxy) GetAllServices() []apiobject.ServiceStore {
-	url := configs.API_URL + "/services"
+	url := configs.GetApiServerUrl() + configs.ServicesURL
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatalf("Error making request: %v", err)
@@ -48,7 +48,7 @@ func (p *KubeProxy) GetAllServices() []apiobject.ServiceStore {
 	return services
 }
 func (p *KubeProxy) UpdateServiceStatus(service apiobject.ServiceStore) {
-	url := fmt.Sprintf(configs.API_URL+"/serviceStore?name=%s", service.Metadata.Name)
+	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.ServiceStoreURL+"?name=%s", service.Metadata.Name)
 
 	serviceJson, err := json.Marshal(service)
 	if err != nil {

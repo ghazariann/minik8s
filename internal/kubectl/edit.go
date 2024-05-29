@@ -56,7 +56,7 @@ func EditPod(name string, filename string) {
 		log.Fatalf("Error converting pod data to JSON: %v", err)
 	}
 
-	url := fmt.Sprintf(configs.API_URL+"/pod?name=%s", name)
+	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.PodUrl+"?name=%s", name)
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		log.Fatalf("Error sending request: %v", err)

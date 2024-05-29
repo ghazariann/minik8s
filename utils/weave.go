@@ -1,4 +1,4 @@
-package weave
+package utils
 
 import (
 	"errors"

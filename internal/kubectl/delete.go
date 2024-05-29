@@ -42,7 +42,7 @@ var CmdDeleteService = &cobra.Command{
 }
 
 func deleteService(name string) {
-	url := fmt.Sprintf(configs.API_URL+"/service?name=%s", name)
+	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.ServiceURL+"?name=%s", name)
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		log.Fatalf("Error creating request: %v", err)
@@ -61,7 +61,7 @@ func deleteService(name string) {
 
 // DeletePod deletes a pod by name
 func DeletePod(name string) {
-	url := fmt.Sprintf(configs.API_URL+"/pod?name=%s", name)
+	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.PodUrl+"?name=%s", name)
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		log.Fatalf("Error creating request: %v", err)
@@ -79,7 +79,7 @@ func DeletePod(name string) {
 }
 
 func deleteDeployment(name string) {
-	url := fmt.Sprintf(configs.API_URL+"/deployment?name=%s", name)
+	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.DeploymentUrl+"?name=%s", name)
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		log.Fatalf("Error creating request: %v", err)

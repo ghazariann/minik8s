@@ -12,4 +12,6 @@ const (
 	ETCDEndpointPath = "/minik8s/endpoints/"
 	//minik8s/deployments/<deployment-name>
 	ETCDDeploymentPath = "/minik8s/deployments/"
+	//minik8s/nodes/<node-name>
+	ETCDNodePath = "/minik8s/nodes/"
 )

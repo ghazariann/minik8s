@@ -70,7 +70,7 @@ var CmdGetDeployment = &cobra.Command{
 }
 
 func GetPod(name string) {
-	url := fmt.Sprintf(configs.API_URL+"/pod?name=%s", name)
+	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.PodUrl+"?name=%s", name)
 	resp, err := http.Get(url)
 	// Check for HTTP status code
 	if resp.StatusCode == http.StatusNotFound {
@@ -107,7 +107,7 @@ func GetPod(name string) {
 }
 
 func GetDeployment(name string) {
-	url := configs.API_URL + "/deployment?name=" + name
+	url := configs.GetApiServerUrl() + configs.DeploymentUrl + "?name=" + name
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatalf("Error making request: %v", err)
@@ -136,7 +136,7 @@ func GetDeployment(name string) {
 	fmt.Println(string(formattedJSON))
 }
 func GetAllPods() {
-	url := configs.API_URL + "/pods"
+	url := configs.GetApiServerUrl() + configs.PodsURL
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatalf("Error making request: %v", err)
@@ -169,7 +169,7 @@ func GetAllPods() {
 }
 
 func GetService(name string) {
-	url := fmt.Sprintf(configs.API_URL+"/services?name=%s", name)
+	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.ServiceURL+"?name=%s", name)
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatalf("Error making request: %v", err)
@@ -183,7 +183,7 @@ func GetService(name string) {
 }
 
 func GetAllServices() {
-	url := configs.API_URL + "/services"
+	url := configs.GetApiServerUrl() + configs.ServicesURL
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatalf("Error making request: %v", err)
@@ -212,7 +212,7 @@ func GetAllServices() {
 }
 
 func ListDeployments() {
-	url := configs.API_URL + "/deployments"
+	url := configs.GetApiServerUrl() + configs.DeploymentsUrl
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatalf("Error sending request to list deployments: %v", err)

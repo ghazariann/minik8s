@@ -7,7 +7,7 @@ import (
 	"minik8s/internal/apiobject" // Ensure correct import path
 	"strings"
 
-	weave "minik8s/utils"
+	"minik8s/utils"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
@@ -92,7 +92,7 @@ func (r *RuntimeManager) createPauseContainer(images []image.Summary, ctx contex
 
 	// [Weave网络] 为pause容器添加网络
 	if pod.Status.PodIP == "" {
-		res, err := weave.AttachContainer(pauseID)
+		res, err := utils.AttachContainer(pauseID)
 		if err != nil {
 			log.Fatal("Pause Container", err.Error()+res)
 			return "", err

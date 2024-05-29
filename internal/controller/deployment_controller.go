@@ -15,7 +15,7 @@ import (
 )
 
 func GetPodsFromAPIServer() ([]apiobject.PodStore, error) {
-	url := configs.API_URL + "/pods"
+	url := configs.GetApiServerUrl() + configs.PodsURL
 
 	allPods := make([]apiobject.PodStore, 0)
 
@@ -32,7 +32,7 @@ func GetPodsFromAPIServer() ([]apiobject.PodStore, error) {
 }
 
 func GetAllDeploymentsFromAPIServer() ([]apiobject.DeploymentStore, error) {
-	url := configs.API_URL + "/deployments"
+	url := configs.GetApiServerUrl() + configs.DeploymentsUrl
 
 	allDeployments := make([]apiobject.DeploymentStore, 0)
 
@@ -68,7 +68,7 @@ func RandomStr(length int) string {
 	return str
 }
 func AddReplica(deploymentMeta *apiobject.Metadata, pod *apiobject.PodTemplate, num int) error {
-	url := configs.API_URL + "/pods"
+	url := configs.GetApiServerUrl() + configs.PodsURL
 	newPod := apiobject.Pod{}
 	newPod.Metadata = pod.Metadata
 	newPod.Kind = "Pod"
@@ -111,7 +111,7 @@ func ReduceReplica(pods []apiobject.PodStore, num int) error {
 	for i := 0; i < num; i++ {
 		// choose a pod to delete randomly
 		pod := pods[rand.Intn(len(pods))]
-		url := fmt.Sprintf(configs.API_URL+"/pod?name=%s", pod.Metadata.Name)
+		url := fmt.Sprintf(configs.GetApiServerUrl()+configs.PodUrl+"?name=%s", pod.Metadata.Name)
 		req, _ := http.NewRequest("DELETE", url, nil)
 		_, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -138,7 +138,7 @@ func UpdateDeploymentStatus(filteredPods []apiobject.PodStore, deployment *apiob
 		return nil
 	}
 	deployment.Status.ReadyReplicas = ReadyNums
-	url := fmt.Sprintf(configs.API_URL+"/deployment?name=%s", deployment.Metadata.Name)
+	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.DeploymentUrl+"?name=%s", deployment.Metadata.Name)
 
 	jsonData, _ := json.Marshal(deployment)
 	_, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))

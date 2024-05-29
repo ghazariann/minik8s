@@ -3,11 +3,13 @@ package kubelet
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"minik8s/internal/apiobject"
 	"minik8s/internal/configs"
+	"minik8s/utils"
 	"net/http"
 	"time"
 )
@@ -17,6 +19,45 @@ type Kubelet struct {
 	RuntimeManager *RuntimeManager
 }
 
+func IsRegisterd() bool {
+	return false
+}
+
+func RegisterNode() error {
+	if IsRegisterd() {
+		return nil
+	}
+	nodeIP, _ := utils.GetHostIp()
+
+	node := apiobject.Node{
+		APIObject: apiobject.APIObject{
+			APIVersion: "v1",
+			Kind:       "Node",
+			Metadata: apiobject.Metadata{
+				Name: utils.GetHostName(),
+			},
+		},
+		Spec: apiobject.NodeSpec{
+			IP: nodeIP,
+		},
+	}
+
+	targetURL := configs.GetApiServerUrl() + configs.NodesURL
+
+	// 发送POST请求
+	code, res, _ := netrequest.PostRequestByTarget(targetURL, node)
+
+	if code != http.StatusCreated {
+		bodyBytes, err := json.Marshal(res)
+		if err != nil {
+			return err
+		}
+		return errors.New(string(bodyBytes))
+	}
+
+	return nil
+}
+
 // NewKubelet initializes and returns a new Kubelet
 func NewKubelet() (*Kubelet, error) {
 	dockerClient, err := NewDockerClient()
@@ -24,12 +65,13 @@ func NewKubelet() (*Kubelet, error) {
 		return nil, err
 	}
 	runtimeManager := NewRuntimeManager(dockerClient)
+	RegisterNode()
 	return &Kubelet{
 		RuntimeManager: runtimeManager,
 	}, nil
 }
 func (k *Kubelet) GetAllPods() ([]apiobject.PodStore, error) {
-	url := configs.API_URL + "/pods"
+	url := configs.GetApiServerUrl() + configs.PodsURL
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %v", err)
@@ -138,7 +180,7 @@ func (k *Kubelet) CleanUpPod(podName string) error {
 
 // UpdatePodStatus sends a request to the API server to update the pod status
 func (k *Kubelet) UpdatePodStatus(pod *apiobject.PodStore) error {
-	url := fmt.Sprintf(configs.API_URL+"/podStore?name=%s", pod.Metadata.Name)
+	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.PodStoreUrl+"?name=%s", pod.Metadata.Name)
 	podJson, err := json.Marshal(pod)
 	if err != nil {
 		return fmt.Errorf("failed to marshal pod status: %v", err)

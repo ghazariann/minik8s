@@ -63,7 +63,7 @@ func CreatePodFromYAML(filename string) {
 		log.Fatalf("Error converting pod data to JSON: %v", err)
 	}
 
-	url := configs.API_URL + "/pods"
+	url := configs.GetApiServerUrl() + configs.PodsURL
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		log.Fatalf("Error sending request: %v", err)
@@ -92,7 +92,7 @@ func CreateServiceFromYAML(filename string) {
 		log.Fatalf("Error converting service data to JSON: %v", err)
 	}
 
-	url := configs.API_URL + "/services"
+	url := configs.GetApiServerUrl() + configs.ServicesURL
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		log.Fatalf("Error sending request: %v", err)
@@ -121,7 +121,7 @@ func CreateDeploymentFromYAML(filename string) {
 		log.Fatalf("Error converting deployment data to JSON: %v", err)
 	}
 
-	url := configs.API_URL + "/deployments"
+	url := configs.GetApiServerUrl() + configs.DeploymentsUrl
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		log.Fatalf("Error sending request to create deployment: %v", err)
