@@ -1,0 +1,23 @@
+name: test2-pod
+status: created
+ip: 192.168.1.100
+labels:
+  app: myapp
+  tier: frontend
+nodename: 
+containers:
+  - image: nginx
+    command:
+      - "nginx"
+      - "-g"
+      - "daemon off;"
+    ports:
+      - 80
+      - 443
+  - image: busybox
+    command:
+      - "sleep"
+      - "1000"
+    ports:
+      - 80
+

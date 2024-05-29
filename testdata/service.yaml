@@ -1,0 +1,8 @@
+name: test1-service
+selector:
+  app: myapp
+  tier: frontend
+port: 90
+targetPort: 1010
+ip: 10.0.0.1
+

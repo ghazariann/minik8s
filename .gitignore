@@ -1,0 +1,17 @@
+
+.idea/
+.vscode/
+.settings/
+
+# Executables
+*.swf
+*.air
+*.ipa
+*.apk
+
+build/
+build/**
+
+log/
+log/**
+default.etcd
