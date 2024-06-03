@@ -148,6 +148,7 @@ func (k *Kubelet) MonitorAndManagePods() {
 					log.Printf("Successfully created containers for pod %s", pod.Metadata.Name)
 					// Update pod status to Running
 					pod.Status.Phase = apiobject.PodRunning
+
 					if err := k.UpdatePodStatus(&pod); err != nil {
 						log.Printf("Error updating pod status for %s: %v", pod.Metadata.Name, err)
 					} else {

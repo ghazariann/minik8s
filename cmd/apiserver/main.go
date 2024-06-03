@@ -16,6 +16,7 @@ func main() {
 	go kubeproxyInstance.WatchService()
 
 	go controller.WatchDeployment()
+	go controller.WatchHpa()
 	apiserver.StartServer()
 	time.Sleep(1 * time.Second)
 }

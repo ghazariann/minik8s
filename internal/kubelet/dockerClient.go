@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/docker/docker/api/types"
@@ -16,6 +17,54 @@ import (
 
 type DockerClient struct {
 	Client *client.Client
+}
+
+func CpuToMillicores(cpu string) (int64, error) {
+	cpu = strings.TrimSpace(cpu)
+	if strings.HasSuffix(cpu, "m") {
+		// Remove 'm' suffix and parse as millicores
+		number, err := strconv.ParseInt(cpu[:len(cpu)-1], 10, 64)
+		if err != nil {
+			return 0, err
+		}
+		return number, nil
+	}
+
+	// Assume it's a whole number representing full cores, convert to millicores
+	number, err := strconv.ParseInt(cpu, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return number * 1000, nil
+}
+
+func MemoryToBytes(mem string) (int64, error) {
+	// Remove any whitespace
+	mem = strings.TrimSpace(mem)
+
+	// Get the number and unit
+	lastChar := mem[len(mem)-2:]
+	multiplier := int64(1) // Default to bytes
+
+	switch lastChar {
+	case "Mi":
+		multiplier = 1024 * 1024
+	case "Gi":
+		multiplier = 1024 * 1024 * 1024
+	case "Ki":
+		multiplier = 1024
+	default:
+		// Handle simple byte case or any other non-standard case
+		return strconv.ParseInt(mem, 10, 64)
+	}
+
+	// Extract the numeric part
+	number, err := strconv.ParseInt(mem[:len(mem)-2], 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return number * multiplier, nil
 }
 
 // NewDockerClient initializes and returns a new Docker client
