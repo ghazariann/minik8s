@@ -3,7 +3,6 @@ package apiobject
 import "time"
 
 const (
-	// PodPending代表Pod处于Pending状态
 	PodPending     = "Pending"
 	PodRunning     = "Running"
 	PodSucceeded   = "Succeeded"
@@ -43,13 +42,24 @@ type PodStore struct {
 type Port struct {
 	ContainerPort int `yaml:"containerPort"`
 }
+type ResourceType struct {
+	Cpu    string `yaml:"cpu" json:"cpu"`       // 256Mi
+	Memory string `yaml:"memory" json:"memory"` // 256Mi
+}
+
+type ContainerResources struct {
+	Limits   ResourceType `yaml:"limits"`
+	Requests ResourceType `yaml:"requests"`
+}
 
 // Container represents a container within a Pod.
 type Container struct {
-	Name    string   `yaml:"name" json:"name"`
-	Image   string   `yaml:"image" json:"image"`
-	Command []string `yaml:"command" json:"command"`
-	Ports   []Port   `yaml:"ports" json:"ports"`
+	Name      string             `yaml:"name" json:"name"`
+	Image     string             `yaml:"image" json:"image"`
+	Command   []string           `yaml:"command" json:"command"`
+	Args      []string           `yaml:"args" json:"args"`
+	Ports     []Port             `yaml:"ports" json:"ports"`
+	Resources ContainerResources `yaml:"resources"`
 }
 
 func (p *Pod) ToStore() *PodStore {

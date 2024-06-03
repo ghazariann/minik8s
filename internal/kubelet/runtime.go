@@ -2,6 +2,7 @@ package kubelet
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"minik8s/internal/apiobject" // Ensure correct import path
@@ -9,6 +10,7 @@ import (
 
 	"minik8s/utils"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
@@ -24,6 +26,40 @@ func NewRuntimeManager(dockerClient *DockerClient) *RuntimeManager {
 	return &RuntimeManager{DockerClient: dockerClient}
 }
 
+func calculateCPUPercentUnix(previous types.Stats) float64 {
+	cpuDelta := float64(previous.CPUStats.CPUUsage.TotalUsage) - float64(previous.PreCPUStats.CPUUsage.TotalUsage)
+	systemDelta := float64(previous.CPUStats.SystemUsage) - float64(previous.PreCPUStats.SystemUsage)
+	onlineCPUs := float64(previous.CPUStats.OnlineCPUs)
+	if onlineCPUs == 0.0 {
+		onlineCPUs = float64(len(previous.CPUStats.CPUUsage.PercpuUsage))
+	}
+	cpuPercent := (cpuDelta / systemDelta) * onlineCPUs
+	return cpuPercent
+}
+
+func calculateMemPercentUnix(previous types.Stats) float64 {
+	memPercent := float64(previous.MemoryStats.Usage) / float64(previous.MemoryStats.Limit)
+	return memPercent
+}
+
+func (r *RuntimeManager) GetContainerResource(containerID string) (float64, float64, error) {
+	ctx := context.Background()
+	stats, err := r.DockerClient.Client.ContainerStats(ctx, containerID, false)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to get container stats for %s: %v", containerID, err)
+	}
+	defer stats.Body.Close()
+
+	var stat types.Stats
+	if err := json.NewDecoder(stats.Body).Decode(&stat); err != nil {
+		return 0, 0, fmt.Errorf("failed to decode container stats for %s: %v", containerID, err)
+	}
+
+	cpuPercent := calculateCPUPercentUnix(stat)
+	memoryPercent := calculateMemPercentUnix(stat)
+	return cpuPercent, memoryPercent, nil
+}
+
 // CreatePod creates a pod with the specified configuration
 func (r *RuntimeManager) CreatePod(pod *apiobject.PodStore) error {
 	ctx := context.Background()
@@ -37,7 +73,12 @@ func (r *RuntimeManager) CreatePod(pod *apiobject.PodStore) error {
 	}
 
 	for _, containerSpec := range pod.Spec.Containers {
-		r.createContainerWithLabel(images, ctx, pauseID, pod.Metadata, containerSpec)
+		containerID, _ := r.createContainerWithLabel(images, ctx, pauseID, pod.Metadata, containerSpec)
+		if containerID != "" {
+			cpuPercent, memoryPercent, _ := r.GetContainerResource(containerID)
+			pod.Status.CpuPercent += cpuPercent
+			pod.Status.MemPercent += memoryPercent
+		}
 	}
 
 	return nil
@@ -103,11 +144,11 @@ func (r *RuntimeManager) createPauseContainer(images []image.Summary, ctx contex
 	return pauseID, nil
 }
 
-func (r *RuntimeManager) createContainerWithLabel(images []image.Summary, ctx context.Context, pauseID string, podMeta apiobject.Metadata, containerSpec apiobject.Container) error {
+func (r *RuntimeManager) createContainerWithLabel(images []image.Summary, ctx context.Context, pauseID string, podMeta apiobject.Metadata, containerSpec apiobject.Container) (string, error) {
 	// Check and pull the container image if not present
 	if !r.DockerClient.ImageExists(images, containerSpec.Image) {
 		if err := r.DockerClient.PullImage(containerSpec.Image); err != nil {
-			return fmt.Errorf("failed to pull image %s: %v", containerSpec.Image, err)
+			return "", fmt.Errorf("failed to pull image %s: %v", containerSpec.Image, err)
 		}
 	}
 
@@ -117,31 +158,43 @@ func (r *RuntimeManager) createContainerWithLabel(images []image.Summary, ctx co
 		pauseRef := "container:" + pauseID
 
 		contConf := container.Config{
-			Image:  containerSpec.Image,
-			Cmd:    containerSpec.Command,
-			Labels: labels,
+			Image:      containerSpec.Image,
+			Entrypoint: containerSpec.Command,
+			Cmd:        containerSpec.Args,
+			Labels:     labels,
+		}
+		contRes := container.Resources{}
+		if containerSpec.Resources.Limits.Memory != "" && containerSpec.Resources.Limits.Cpu != "" {
+			mem, _ := MemoryToBytes(containerSpec.Resources.Limits.Memory)
+			cpuPer, _ := CpuToMillicores(containerSpec.Resources.Limits.Cpu)
+			contRes = container.Resources{
+				Memory:   mem,
+				NanoCPUs: cpuPer,
+			}
 		}
 		hostConf := container.HostConfig{
 			PidMode:     container.PidMode(pauseRef),
 			IpcMode:     container.IpcMode(pauseRef),
 			NetworkMode: container.NetworkMode(pauseRef),
+			Resources:   contRes,
 		}
 		// Create the application container if not present
 		resp, err := r.DockerClient.Client.ContainerCreate(ctx, &contConf, &hostConf, &network.NetworkingConfig{}, nil, containerName)
 		if err != nil {
-			return fmt.Errorf("failed to create container %s: %v", containerSpec.Image, err)
+			return "", fmt.Errorf("failed to create container %s: %v", containerSpec.Image, err)
 		}
 
 		// Start the application container
 		if err := r.DockerClient.Client.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
-			return fmt.Errorf("failed to start container %s: %v", resp.ID, err)
+			return "", fmt.Errorf("failed to start container %s: %v", resp.ID, err)
 		}
 		fmt.Printf("Started container %s with ID %s\n", containerSpec.Image, resp.ID)
+		return resp.ID, nil
 	} else {
 		log.Printf("Container %s already exists, skipping creation.", containerName)
 	}
 
-	return nil
+	return "", nil
 }
 
 // StopContainer stops a container by its ID

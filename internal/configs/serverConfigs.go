@@ -34,6 +34,9 @@ const (
 	DeploymentUrl   = "/deployment"
 	DeploymentsUrl  = "/deployments"
 	EndpointURL     = "/endpoints"
+	HpaUrl          = "/hpa"
+	HpaStoreUrl     = "/hpaStore"
+	HpasUrl         = "/hpas"
 )
 
 // create a path for the etcd key

@@ -47,6 +47,15 @@ var CmdCreateDeployment = &cobra.Command{
 	},
 }
 
+var CmdCreateHpa = &cobra.Command{
+	Use:   "hpa -f [filename]",
+	Short: "Create a Horizontal Pod Autoscaler from a YAML file",
+	Run: func(cmd *cobra.Command, args []string) {
+		filename, _ := cmd.Flags().GetString("filename")
+		CreateHpaFromYAML(filename)
+	},
+}
+
 func CreatePodFromYAML(filename string) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
@@ -134,6 +143,34 @@ func CreateDeploymentFromYAML(filename string) {
 	fmt.Println(string(body))
 }
 
+func CreateHpaFromYAML(filename string) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		log.Fatalf("Error reading YAML file: %v", err)
+	}
+	var service apiobject.Hpa
+	if err := yaml.Unmarshal(data, &service); err != nil {
+		log.Fatalf("Error parsing YAML: %v", err)
+	}
+
+	jsonData, err := json.Marshal(service)
+	if err != nil {
+		log.Fatalf("Error converting service data to JSON: %v", err)
+	}
+
+	url := configs.GetApiServerUrl() + configs.HpasUrl
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		log.Fatalf("Error sending request: %v", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Error reading response body: %v", err)
+	}
+	fmt.Println(string(body))
+}
+
 func init() {
 	CmdCreateDeployment.Flags().StringVarP(new(string), "filename", "f", "", "Path to the YAML file")
 	CmdCreateDeployment.MarkFlagRequired("filename")
@@ -143,9 +180,12 @@ func init() {
 
 	CmdCreateServiceFromYAML.Flags().StringVarP(new(string), "filename", "f", "", "Path to the YAML file")
 	CmdCreateServiceFromYAML.MarkFlagRequired("filename")
+	CmdCreateHpa.Flags().StringVarP(new(string), "filename", "f", "", "Path to the YAML file")
+	CmdCreateHpa.MarkFlagRequired("filename")
 
 	CreateCmd.AddCommand(CmdCreatePodFromYAML)
 	CreateCmd.AddCommand(CmdCreateDeployment)
 	CreateCmd.AddCommand(CmdCreateServiceFromYAML)
+	CreateCmd.AddCommand(CmdCreateHpa)
 
 }

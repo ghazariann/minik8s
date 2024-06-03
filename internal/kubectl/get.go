@@ -69,6 +69,25 @@ var CmdGetDeployment = &cobra.Command{
 	},
 }
 
+// implementation of the hpa get
+var CmdGetHpa = &cobra.Command{
+	Use:   "hpa [name]",
+	Short: "Get One hpa",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		GetHpa(args[0])
+	},
+}
+
+// implementation of the hpa get all
+var CmdGetHpas = &cobra.Command{
+	Use:   "hpas",
+	Short: "List all hpas",
+	Run: func(cmd *cobra.Command, args []string) {
+		ListHpas()
+	},
+}
+
 func GetPod(name string) {
 	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.PodUrl+"?name=%s", name)
 	resp, err := http.Get(url)
@@ -237,6 +256,45 @@ func ListDeployments() {
 	}
 }
 
+func GetHpa(name string) {
+	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.HpaUrl+"?name=%s", name)
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Fatalf("Error making request: %v", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Error reading response body: %v", err)
+	}
+	fmt.Println(string(body))
+}
+
+func ListHpas() {
+	url := configs.GetApiServerUrl() + configs.HpasUrl
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Fatalf("Error sending request to list hpas: %v", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+
+	var hpas []apiobject.HpaStore
+	if err := json.Unmarshal(body, &hpas); err != nil {
+		log.Fatalf("Error unmarshalling response body: %v", err)
+	}
+
+	if err != nil {
+		log.Fatalf("Error reading response body: %v", err)
+	}
+
+	fmt.Printf("%-20s  %-10s  %-10s\n", "Name", "Min Replicas", "Max Replicas")
+
+	// Print each container's name and status
+	for _, hpa := range hpas {
+		fmt.Printf("%-20s %-10d  %-10d\n", hpa.Metadata.Name, hpa.Spec.MinReplicas, hpa.Spec.MaxReplicas)
+	}
+}
 func init() {
 	GetCmd.AddCommand(CmdGetDeployment)
 	GetCmd.AddCommand(CmdGetDeployments)
@@ -244,4 +302,6 @@ func init() {
 	GetCmd.AddCommand(CmdGetService)
 	GetCmd.AddCommand(CmdGetPod)
 	GetCmd.AddCommand(CmdGetAllPods)
+	GetCmd.AddCommand(CmdGetHpa)
+	GetCmd.AddCommand(CmdGetHpas)
 }
