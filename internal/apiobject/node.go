@@ -17,8 +17,6 @@ type NodeSpec struct {
 }
 
 type NodeStatus struct {
-	Hostname   string    `json:"hostname" yaml:"hostname"`
-	Ip         string    `json:"ip" yaml:"ip"`
 	Condition  string    `json:"condition" yaml:"condition"` // ready, unknown
 	CpuPercent float64   `json:"cpuPercent" yaml:"cpuPercent"`
 	MemPercent float64   `json:"memPercent" yaml:"memPercent"`
@@ -27,7 +25,7 @@ type NodeStatus struct {
 }
 
 // ToNodeStore converts a Node to NodeStore.
-func (d *Node) ToNodeStore() *NodeStore {
+func (d *Node) ToStore() *NodeStore {
 	return &NodeStore{
 		APIObject: d.APIObject,
 		Spec:      d.Spec,

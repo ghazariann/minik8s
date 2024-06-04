@@ -8,6 +8,7 @@ const (
 	LOCAL_API_URL        = SCHEMA + LOCAL_API_SERVER_IP + ":" + API_SERVER_PORT
 	MASTER_API_URL       = SCHEMA + MASTER_API_SERVER_IP + ":" + API_SERVER_PORT
 	masterNode           = true
+	API_VERSION          = "v1"
 )
 
 func GetApiServerUrl() string {
@@ -19,29 +20,23 @@ func GetApiServerUrl() string {
 }
 
 const (
-	NodesURL          = "/nodes"
-	NodeSpecURL       = "/api/v1/nodes/:name"
-	NodeSpecStatusURL = "/api/v1/nodes/:name/status"
-	NodeAllPodsURL    = "/api/v1/nodes/:name/pods"
+	NodeUrl  = "/node"
+	NodesUrl = "/nodes"
+	// NodeSpecURL       = "/api/v1/nodes/:name"
+	// NodeSpecStatusURL = "/api/v1/nodes/:name/status"
+	// NodeAllPodsURL    = "/api/v1/nodes/:name/pods"
 
 	PodUrl      = "/pod"
 	PodStoreUrl = "/podStore"
 	PodsURL     = "/pods"
 
-	ServiceURL      = "/service"
-	ServicesURL     = "/services"
+	ServiceUrl      = "/service"
+	ServicesUrl     = "/services"
 	ServiceStoreURL = "/serviceStore"
 	DeploymentUrl   = "/deployment"
 	DeploymentsUrl  = "/deployments"
-	EndpointURL     = "/endpoints"
+	EndpointsURL    = "/endpoints"
 	HpaUrl          = "/hpa"
 	HpaStoreUrl     = "/hpaStore"
 	HpasUrl         = "/hpas"
 )
-
-// create a path for the etcd key
-// var SERVICES_URL = path.Join(API_URL, ETCDServicePath)
-// var SERVICE_URL = path.Join(API_URL, ETCDServicePath)
-// var DEPLOYMENTS_URL = path.Join(API_URL, ETCDDeploymentPath)
-// var PODS_URL = path.Join(API_URL, ETCDPodPath)
-// var ENDPOINTS_URL = path.Join(API_URL, ETCDServicePath)

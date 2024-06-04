@@ -50,7 +50,7 @@ var CmdDeleteHpa = &cobra.Command{
 }
 
 func deleteService(name string) {
-	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.ServiceURL+"?name=%s", name)
+	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.ServiceUrl+"?name=%s", name)
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		log.Fatalf("Error creating request: %v", err)

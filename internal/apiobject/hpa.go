@@ -1,7 +1,5 @@
 package apiobject
 
-import "time"
-
 type HpaMetrics struct {
 	CPUPercent float64 `yaml:"cpuPercent" json:"cpuPercent"`
 	MemPercent float64 `yaml:"memPercent" json:"memPercent"`
@@ -11,7 +9,7 @@ type HpaSpec struct {
 	MinReplicas    int           `yaml:"minReplicas" json:"minReplicas"`
 	MaxReplicas    int           `yaml:"maxReplicas" json:"maxReplicas"`
 	ScaleTargetRef APIObject     `yaml:"scaleTargetRef" json:"wscaleTargetReforkload"`
-	Interval       time.Duration `yaml:"interval" json:"interval"`
+	Interval       int           `yaml:"interval" json:"interval"` // in seconds
 	Selector       LabelSelector `yaml:"selector" json:"selector"`
 	Metrics        HpaMetrics    `yaml:"metrics" json:"metrics"`
 }

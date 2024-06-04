@@ -52,7 +52,7 @@ func GetHpasFromAPIServer() ([]apiobject.HpaStore, error) {
 
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Fatalf("Error sending request to list deployments: %v", err)
+		return nil, fmt.Errorf("error sending request to list hpas: %v", err)
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
@@ -144,8 +144,10 @@ func HpaUpdate(hpa apiobject.HpaStore, pods []apiobject.PodStore) {
 			log.Printf("Error updating HPA status: %v", err)
 		}
 
-		fmt.Printf("Sleeping 15 seconds")
-		time.Sleep(time.Duration(15 * time.Second))
+		// fmt.Printf("Sleeping 15 seconds")
+		// TODO change to hpa defined value
+		dur := time.Duration(time.Duration(hpa.Spec.Interval) * time.Second)
+		time.Sleep(dur)
 	}
 }
 

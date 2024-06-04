@@ -14,6 +14,7 @@ import (
 
 type KubeProxy struct {
 	iptableManager IptableManager
+	knownServices  map[string]apiobject.ServiceStore
 }
 
 func NewKubeProxy() (*KubeProxy, error) {
@@ -27,49 +28,70 @@ func NewKubeProxy() (*KubeProxy, error) {
 	iptableManager.Initialize_iptables()
 	return &KubeProxy{
 		iptableManager: *iptableManager,
+		knownServices:  make(map[string]apiobject.ServiceStore),
 	}, nil
 }
-func (p *KubeProxy) GetAllServices() []apiobject.ServiceStore {
-	url := configs.GetApiServerUrl() + configs.ServicesURL
+func (p *KubeProxy) GetAllServices() ([]apiobject.ServiceStore, error) {
+	url := configs.GetApiServerUrl() + configs.ServicesUrl
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Fatalf("Error making request: %v", err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalf("Error reading response body: %v", err)
+		return nil, fmt.Errorf("reading response body: %v", err)
 	}
 	var services []apiobject.ServiceStore
 
 	if err := json.Unmarshal(body, &services); err != nil {
-		log.Fatalf("Error unmarshalling response body: %v", err)
+		return nil, fmt.Errorf("unmarshalling response body: %v", err)
 	}
-	return services
+	return services, nil
 }
-func (p *KubeProxy) UpdateServiceStatus(service apiobject.ServiceStore) {
+func (p *KubeProxy) UpdateServiceStatus(service apiobject.ServiceStore) error {
 	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.ServiceStoreURL+"?name=%s", service.Metadata.Name)
 
 	serviceJson, err := json.Marshal(service)
 	if err != nil {
-		log.Fatalf("Error encoding service data: %v", err)
+		return fmt.Errorf("marshalling service: %v", err)
 	}
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(serviceJson))
 	if err != nil {
-		log.Fatalf("Error creating request: %v", err)
+		return fmt.Errorf("creating request: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatalf("Error updating service status: %v", err)
+		return fmt.Errorf("sending request: %v", err)
 	}
 	defer resp.Body.Close()
+	return nil
 }
-func (p *KubeProxy) ServiceRoutine() {
+func (p *KubeProxy) ServiceRoutine() error {
 
-	services := p.GetAllServices()
+	services, err := p.GetAllServices()
+	if err != nil {
+		return err
+	}
+	// Detect deleted services
+	for serviceName, _ := range p.knownServices {
+		found := false
+		for _, newService := range services {
+			if newService.Metadata.Name == serviceName {
+				found = true
+				break
+			}
+		}
+		if !found {
+			fmt.Println("delete service", serviceName)
+			p.iptableManager.CleanIpTables(serviceName)
+			delete(p.knownServices, serviceName)
+		}
+	}
 	for _, service := range services {
+		p.knownServices[service.Metadata.Name] = service
 		if service.Status.Phase == "pending" {
 			fmt.Println("create service", service.Metadata.Name)
 			p.iptableManager.CreateService(service)
@@ -77,11 +99,17 @@ func (p *KubeProxy) ServiceRoutine() {
 			p.UpdateServiceStatus(service)
 		}
 	}
+
+	return nil
 }
 
 func (p *KubeProxy) WatchService() {
 	ticker := time.NewTicker(10 * time.Second)
 	for range ticker.C {
-		p.ServiceRoutine()
+		err := p.ServiceRoutine()
+		if err != nil {
+			log.Printf("KUBEPROXY error: %v", err)
+			continue
+		}
 	}
 }

@@ -9,7 +9,7 @@ spec:
     kind: Pod
     metadata:
       name: test-pod
-  interval: 15s
+  interval: 15
   selector:
     matchLabels: 
       app: hpa

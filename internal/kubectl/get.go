@@ -17,6 +17,18 @@ var GetCmd = &cobra.Command{
 	Short: "Get resources",
 }
 
+var CmdGetAll = &cobra.Command{
+	Use:   "all",
+	Short: "Get all resources",
+	Run: func(cmd *cobra.Command, args []string) {
+		GetAllPods()
+		GetAllServices()
+		ListDeployments()
+		ListHpas()
+		ListNodes()
+	},
+}
+
 var CmdGetPod = &cobra.Command{
 	Use:   "pod [name]",
 	Short: "Retrieve information about the pod by name",
@@ -26,6 +38,14 @@ var CmdGetPod = &cobra.Command{
 	},
 }
 
+var CmdGetEndpoints = &cobra.Command{
+	Use:   "endpoints",
+	Short: "Retrieve information about the endpoints",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		GetEndpoints()
+	},
+}
 var CmdGetAllPods = &cobra.Command{
 	Use:   "pods",
 	Short: "Retrieve information about all pods",
@@ -85,6 +105,24 @@ var CmdGetHpas = &cobra.Command{
 	Short: "List all hpas",
 	Run: func(cmd *cobra.Command, args []string) {
 		ListHpas()
+	},
+}
+
+// node
+var CmdGetNode = &cobra.Command{
+	Use:   "node [name]",
+	Short: "Get One node",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		GetNode(args[0])
+	},
+}
+
+var CmdGetNodes = &cobra.Command{
+	Use:   "nodes",
+	Short: "List all nodes",
+	Run: func(cmd *cobra.Command, args []string) {
+		ListNodes()
 	},
 }
 
@@ -172,11 +210,11 @@ func GetAllPods() {
 		log.Fatalf("Error unmarshalling response body: %v", err)
 	}
 	// Print header
-	fmt.Printf("%-20s %-10s %-10s\n", "Name", "Status", "IP")
+	fmt.Printf("%-10s %-10s %-10s\n", "Name", "Status", "IP")
 
 	// Print each container's name and status
 	for _, pod := range pods {
-		fmt.Printf("%-20s %-10s %-10s\n", pod.Metadata.Name, pod.Status.Phase, pod.Status.PodIP)
+		fmt.Printf("%-10s %-10s %-10s\n", pod.Metadata.Name, pod.Status.Phase, pod.Status.PodIP)
 	}
 	// // Marshal with indentation for pretty printing
 	// formattedJSON, err := json.MarshalIndent(pods, "", "    ")
@@ -187,8 +225,22 @@ func GetAllPods() {
 	// fmt.Println(string(formattedJSON))
 }
 
+func GetEndpoints() {
+	url := configs.GetApiServerUrl() + configs.EndpointsURL
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Fatalf("Error making request: %v", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Error reading response body: %v", err)
+	}
+	fmt.Println(string(body))
+
+}
 func GetService(name string) {
-	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.ServiceURL+"?name=%s", name)
+	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.ServiceUrl+"?name=%s", name)
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatalf("Error making request: %v", err)
@@ -202,7 +254,7 @@ func GetService(name string) {
 }
 
 func GetAllServices() {
-	url := configs.GetApiServerUrl() + configs.ServicesURL
+	url := configs.GetApiServerUrl() + configs.ServicesUrl
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatalf("Error making request: %v", err)
@@ -222,11 +274,11 @@ func GetAllServices() {
 		log.Fatalf("Error reading response body: %v", err)
 	}
 
-	fmt.Printf("%-20s  %-10s  %-10s %-10s \n", "Name", "Phase", "Type", "Cluster IP")
+	fmt.Printf("%-10s  %-10s  %-10s %-10s \n", "Name", "Phase", "Type", "Cluster IP")
 
 	// Print each container's name and status
 	for _, service := range services {
-		fmt.Printf("%-20s %-10s  %-10s %-10s \n", service.Metadata.Name, service.Status.Phase, service.Spec.Type, service.Spec.ClusterIP)
+		fmt.Printf("%-10s %-10s  %-10s %-10s \n", service.Metadata.Name, service.Status.Phase, service.Spec.Type, service.Spec.ClusterIP)
 	}
 }
 
@@ -248,11 +300,11 @@ func ListDeployments() {
 		log.Fatalf("Error reading response body: %v", err)
 	}
 
-	fmt.Printf("%-20s  %-10s  %-10s\n", "Name", "Replicas", "Ready Replicas")
+	fmt.Printf("%-10s  %-10s  %-10s\n", "Name", "Replicas", "Ready Replicas")
 
 	// Print each container's name and status
 	for _, deployment := range deployments {
-		fmt.Printf("%-20s %-10d  %-10d\n", deployment.Metadata.Name, deployment.Spec.Replicas, deployment.Status.ReadyReplicas)
+		fmt.Printf("%-10s %-10d  %-10d\n", deployment.Metadata.Name, deployment.Spec.Replicas, deployment.Status.ReadyReplicas)
 	}
 }
 
@@ -288,12 +340,52 @@ func ListHpas() {
 		log.Fatalf("Error reading response body: %v", err)
 	}
 
-	fmt.Printf("%-20s  %-10s  %-10s\n", "Name", "Min Replicas", "Max Replicas")
+	fmt.Printf("%-10s  %-10s %-10s %-10s %-10s %-10s\n", "Name", "Min Replicas", "Max Replicas", "Current Replicas", "currentCPUPercent", "currentMemPercent")
 
 	// Print each container's name and status
 	for _, hpa := range hpas {
-		fmt.Printf("%-20s %-10d  %-10d\n", hpa.Metadata.Name, hpa.Spec.MinReplicas, hpa.Spec.MaxReplicas)
+		fmt.Printf("%-10s %-10d %-10d %-10d %-10f %-10f\n", hpa.Metadata.Name, hpa.Spec.MinReplicas, hpa.Spec.MaxReplicas, hpa.Status.CurrentReplicas, hpa.Status.CurrentCPUPercent, hpa.Status.CurrentMemPercent)
 	}
+}
+
+func GetNode(name string) {
+	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.NodeUrl+"?name=%s", name)
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Fatalf("Error making request: %v", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Error reading response body: %v", err)
+	}
+	fmt.Println(string(body))
+}
+
+func ListNodes() {
+	url := configs.GetApiServerUrl() + configs.NodesUrl
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Fatalf("Error sending request to list nodes: %v", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	var nodes []apiobject.NodeStore
+	if err := json.Unmarshal(body, &nodes); err != nil {
+		log.Fatalf("Error unmarshalling response body: %v", err)
+	}
+
+	if err != nil {
+		log.Fatalf("Error reading response body: %v", err)
+	}
+
+	// print Spec.IP, Status.HostName, Status.Condition, Status.NumPods, Status.CpuPercent, Status.MemPercent
+	fmt.Printf("%-15s  %-10s  %-10s %-10s %-10s %-10s\n", "IP", "HostName", "Condition", "NumPods", "CpuPercent", "MemPercent")
+	// Print each container's name and status
+	for _, node := range nodes {
+		fmt.Printf(" %-15s  %-10s %-10s %-10d %-10f %-10f\n", node.Spec.IP, node.Metadata.Name, node.Status.Condition, node.Status.NumPods, node.Status.CpuPercent, node.Status.MemPercent)
+	}
+
 }
 func init() {
 	GetCmd.AddCommand(CmdGetDeployment)
@@ -304,4 +396,7 @@ func init() {
 	GetCmd.AddCommand(CmdGetAllPods)
 	GetCmd.AddCommand(CmdGetHpa)
 	GetCmd.AddCommand(CmdGetHpas)
+	GetCmd.AddCommand(CmdGetNode)
+	GetCmd.AddCommand(CmdGetNodes)
+	GetCmd.AddCommand(CmdGetAll)
 }
