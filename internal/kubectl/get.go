@@ -17,6 +17,18 @@ var GetCmd = &cobra.Command{
 	Short: "Get resources",
 }
 
+var CmdGetAll = &cobra.Command{
+	Use:   "all",
+	Short: "Get all resources",
+	Run: func(cmd *cobra.Command, args []string) {
+		GetAllPods()
+		GetAllServices()
+		ListDeployments()
+		ListHpas()
+		ListNodes()
+	},
+}
+
 var CmdGetPod = &cobra.Command{
 	Use:   "pod [name]",
 	Short: "Retrieve information about the pod by name",
@@ -26,6 +38,14 @@ var CmdGetPod = &cobra.Command{
 	},
 }
 
+var CmdGetEndpoints = &cobra.Command{
+	Use:   "endpoints",
+	Short: "Retrieve information about the endpoints",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		GetEndpoints()
+	},
+}
 var CmdGetAllPods = &cobra.Command{
 	Use:   "pods",
 	Short: "Retrieve information about all pods",
@@ -205,6 +225,20 @@ func GetAllPods() {
 	// fmt.Println(string(formattedJSON))
 }
 
+func GetEndpoints() {
+	url := configs.GetApiServerUrl() + configs.EndpointsURL
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Fatalf("Error making request: %v", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Error reading response body: %v", err)
+	}
+	fmt.Println(string(body))
+
+}
 func GetService(name string) {
 	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.ServiceUrl+"?name=%s", name)
 	resp, err := http.Get(url)
@@ -306,11 +340,11 @@ func ListHpas() {
 		log.Fatalf("Error reading response body: %v", err)
 	}
 
-	fmt.Printf("%-20s  %-10s  %-10s\n", "Name", "Min Replicas", "Max Replicas")
+	fmt.Printf("%-20s  %-10s %-10s %-10s %-10s %-10s\n", "Name", "Min Replicas", "Max Replicas", "Current Replicas", "currentCPUPercent", "currentMemPercent")
 
 	// Print each container's name and status
 	for _, hpa := range hpas {
-		fmt.Printf("%-20s %-10d  %-10d\n", hpa.Metadata.Name, hpa.Spec.MinReplicas, hpa.Spec.MaxReplicas)
+		fmt.Printf("%-20s %-10d %-10d %-10d %-10f %-10f\n", hpa.Metadata.Name, hpa.Spec.MinReplicas, hpa.Spec.MaxReplicas, hpa.Status.CurrentReplicas, hpa.Status.CurrentCPUPercent, hpa.Status.CurrentMemPercent)
 	}
 }
 
@@ -364,4 +398,5 @@ func init() {
 	GetCmd.AddCommand(CmdGetHpas)
 	GetCmd.AddCommand(CmdGetNode)
 	GetCmd.AddCommand(CmdGetNodes)
+	GetCmd.AddCommand(CmdGetAll)
 }

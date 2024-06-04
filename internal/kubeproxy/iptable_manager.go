@@ -97,7 +97,7 @@ func (im *IptableManager) setIPTablesClusterIp(serviceName string, clusterIP str
 		serviceName+": cluster IP", "-p", protocol, "--dport", strconv.Itoa(port),
 		"--destination", clusterIP+"/"+strconv.Itoa(16), "-j", kube_service); err != nil {
 		log.Printf("KUBEPROXY: Failed to insert MINIK8S-SERVICES rule for kube_service chain: " + err.Error())
-		return err
+		// return err
 	}
 	im.chainToRule[kube_service] = append(im.chainToRule[kube_service], "MINIK8S-SERVICES")
 
@@ -105,7 +105,7 @@ func (im *IptableManager) setIPTablesClusterIp(serviceName string, clusterIP str
 		serviceName+": cluster IP", "-p", protocol, "--dport", strconv.Itoa(port),
 		"-j", "MINIK8S-MARK-MASQ", "--destination", clusterIP+"/"+strconv.Itoa(16)); err != nil {
 		log.Printf("KUBEPROXY: Failed to insert MINIK8S-SERVICES rule for MINIK8S-MARK-MASQ chain: " + err.Error())
-		return err
+		// return err
 	}
 	im.chainToRule["MINIK8S-MARK-MASQ"] = append(im.chainToRule["MINIK8S-MARK-MASQ"], "MINIK8S-SERVICES")
 
@@ -169,9 +169,8 @@ func (im *IptableManager) setIPTablesClusterIp(serviceName string, clusterIP str
 	return nil
 }
 
-func (im *IptableManager) DeleteService(service *apiobject.Service) error {
+func (im *IptableManager) CleanIpTables(serviceName string) error {
 
-	serviceName := service.Metadata.Name
 	chainList := im.serviceToChain[serviceName]
 	for _, chain := range chainList {
 		im.ipt.ClearChain("nat", chain)

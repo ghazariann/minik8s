@@ -131,6 +131,15 @@ func StartServer() {
 			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
 		}
 	})
+	// endpoints
+	http.HandleFunc(configs.EndpointsURL, func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "GET":
+			handlers.GetEndpoints(w, r)
+		default:
+			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
+		}
+	})
 
 	// node
 	http.HandleFunc(configs.NodeUrl, func(w http.ResponseWriter, r *http.Request) {

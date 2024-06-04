@@ -35,7 +35,7 @@ const (
 	ServiceStoreURL = "/serviceStore"
 	DeploymentUrl   = "/deployment"
 	DeploymentsUrl  = "/deployments"
-	EndpointURL     = "/endpoints"
+	EndpointsURL    = "/endpoints"
 	HpaUrl          = "/hpa"
 	HpaStoreUrl     = "/hpaStore"
 	HpasUrl         = "/hpas"

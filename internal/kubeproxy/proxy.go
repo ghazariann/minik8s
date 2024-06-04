@@ -14,6 +14,7 @@ import (
 
 type KubeProxy struct {
 	iptableManager IptableManager
+	knownServices  map[string]apiobject.ServiceStore
 }
 
 func NewKubeProxy() (*KubeProxy, error) {
@@ -27,6 +28,7 @@ func NewKubeProxy() (*KubeProxy, error) {
 	iptableManager.Initialize_iptables()
 	return &KubeProxy{
 		iptableManager: *iptableManager,
+		knownServices:  make(map[string]apiobject.ServiceStore),
 	}, nil
 }
 func (p *KubeProxy) GetAllServices() ([]apiobject.ServiceStore, error) {
@@ -73,7 +75,23 @@ func (p *KubeProxy) ServiceRoutine() error {
 	if err != nil {
 		return err
 	}
+	// Detect deleted services
+	for serviceName, _ := range p.knownServices {
+		found := false
+		for _, newService := range services {
+			if newService.Metadata.Name == serviceName {
+				found = true
+				break
+			}
+		}
+		if !found {
+			fmt.Println("delete service", serviceName)
+			p.iptableManager.CleanIpTables(serviceName)
+			delete(p.knownServices, serviceName)
+		}
+	}
 	for _, service := range services {
+		p.knownServices[service.Metadata.Name] = service
 		if service.Status.Phase == "pending" {
 			fmt.Println("create service", service.Metadata.Name)
 			p.iptableManager.CreateService(service)
@@ -81,6 +99,7 @@ func (p *KubeProxy) ServiceRoutine() error {
 			p.UpdateServiceStatus(service)
 		}
 	}
+
 	return nil
 }
 

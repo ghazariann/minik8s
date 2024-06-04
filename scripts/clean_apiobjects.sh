@@ -24,6 +24,10 @@ delete_resource "service" "$services"
 deployments=$(./kubectl get deployments | awk 'NR>1 {print $1}')
 delete_resource "deployment" "$deployments"
 
+# Clean up HPAs
+hpas=$(./kubectl get hpas | awk 'NR>1 {print $1}')
+delete_resource "hpa" "$hpas"
+
 # Check if resources are cleaned up
 echo "Checking if resources are cleaned up ..."
 sleep 3
@@ -33,8 +37,6 @@ echo "Services:"
 ./kubectl get services
 echo "Deployments:"
 ./kubectl get deployments
-
-echo "Docker containers:"
-sleep 3
-docker ps
+echo "HPAs:"
+./kubectl get hpa
 

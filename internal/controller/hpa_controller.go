@@ -144,8 +144,10 @@ func HpaUpdate(hpa apiobject.HpaStore, pods []apiobject.PodStore) {
 			log.Printf("Error updating HPA status: %v", err)
 		}
 
-		fmt.Printf("Sleeping 15 seconds")
-		time.Sleep(time.Duration(15 * time.Second))
+		// fmt.Printf("Sleeping 15 seconds")
+		// TODO change to hpa defined value
+		dur := time.Duration(time.Duration(hpa.Spec.Interval) * time.Second)
+		time.Sleep(dur)
 	}
 }
 
