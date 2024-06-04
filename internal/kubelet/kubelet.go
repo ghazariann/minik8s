@@ -3,48 +3,27 @@ package kubelet
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"minik8s/internal/apiobject"
 	"minik8s/internal/configs"
-	"minik8s/utils"
+	"net"
 	"net/http"
+	"os"
 	"time"
 )
 
 type Kubelet struct {
-	Name           string
-	RuntimeManager *RuntimeManager
+	Name            string
+	RuntimeManager  *RuntimeManager
+	knownPods       map[string]apiobject.PodStore
+	knownContainers map[string]string
 }
 
 func IsRegisterd() bool {
 	return false
-}
-
-func RegisterNode() error {
-	if IsRegisterd() {
-		return nil
-	}
-	nodeIP, _ := utils.GetHostIp()
-
-	node := apiobject.Node{
-		APIObject: apiobject.APIObject{
-			APIVersion: "v1",
-			Kind:       "Node",
-			Metadata: apiobject.Metadata{
-				Name: utils.GetHostName(),
-			},
-		},
-		Spec: apiobject.NodeSpec{
-			IP: nodeIP,
-		},
-	}
-
-	targetURL := configs.GetApiServerUrl() + configs.NodesURL
-	nodeJson, _ := json.Marshal(node)
-	fmt.Printf(targetURL, nodeJson)
-	return nil
 }
 
 // NewKubelet initializes and returns a new Kubelet
@@ -55,15 +34,19 @@ func NewKubelet() (*Kubelet, error) {
 	}
 	runtimeManager := NewRuntimeManager(dockerClient)
 	RegisterNode()
+
 	return &Kubelet{
-		RuntimeManager: runtimeManager,
+		RuntimeManager:  runtimeManager,
+		knownPods:       map[string]apiobject.PodStore{},
+		Name:            "kubelet",
+		knownContainers: map[string]string{},
 	}, nil
 }
 func (k *Kubelet) GetAllPods() ([]apiobject.PodStore, error) {
 	url := configs.GetApiServerUrl() + configs.PodsURL
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("error making request: %v", err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 
@@ -99,67 +82,59 @@ func (k *Kubelet) SyncContainers(knownContainers map[string]string, newContainer
 	}
 }
 
-func (k *Kubelet) MonitorAndManagePods() {
-	var knownPods = map[string]apiobject.PodStore{} // UUID -> PodStore
-	var knownContainers = map[string]string{}       // ContainerID -> PodUUID
+func (k *Kubelet) MonitorAndManagePods() error {
 
-	for {
-		// Fetch all pods
+	// Fetch all pods
+	containers, _ := k.RuntimeManager.DockerClient.ListPodContainers()
+	k.SyncContainers(k.knownContainers, containers, k.knownPods)
+	k.knownContainers = containers
 
-		containers, _ := k.RuntimeManager.DockerClient.ListPodContainers()
-		k.SyncContainers(knownContainers, containers, knownPods)
-		knownContainers = containers
+	pods, err := k.GetAllPods()
 
-		pods, err := k.GetAllPods()
-
-		if err != nil {
-			log.Printf("Error fetching pods: %v", err)
-			time.Sleep(10 * time.Second) // Wait before retrying
-			continue
-		}
-		// Convert fetched pods to a map for easy comparison
-		currentPods := map[string]apiobject.PodStore{}
-		for _, pod := range pods {
-			currentPods[pod.Metadata.UUID] = pod
-		}
-
-		// Detect deleted pods
-		for podName := range knownPods {
-			if _, exists := currentPods[podName]; !exists {
-				log.Printf("Pod %s has been deleted. Cleaning up resources...", podName)
-				if err := k.CleanUpPod(podName); err != nil {
-					log.Printf("Error cleaning up pod %s: %v", podName, err)
-				} else {
-					log.Printf("Successfully cleaned up resources for pod %s", podName)
-				}
-			}
-		}
-
-		// Update knownPods to current state
-		knownPods = currentPods
-
-		// Process pending pods
-		for _, pod := range pods {
-			if pod.Status.Phase == apiobject.PodPending {
-				log.Printf("Pod %s is pending. Attempting to create containers...", pod.Metadata.Name)
-				if err := k.RuntimeManager.CreatePod(&pod); err != nil {
-					log.Printf("Error creating pod %s: %v", pod.Metadata.Name, err)
-				} else {
-					log.Printf("Successfully created containers for pod %s", pod.Metadata.Name)
-					// Update pod status to Running
-					pod.Status.Phase = apiobject.PodRunning
-
-					if err := k.UpdatePodStatus(&pod); err != nil {
-						log.Printf("Error updating pod status for %s: %v", pod.Metadata.Name, err)
-					} else {
-						log.Printf("Successfully updated pod status for %s to Running", pod.Metadata.Name)
-					}
-				}
-			}
-		}
-
-		time.Sleep(5 * time.Second) // Poll interval
+	if err != nil {
+		return err
 	}
+	// Convert fetched pods to a map for easy comparison
+	currentPods := map[string]apiobject.PodStore{}
+	for _, pod := range pods {
+		currentPods[pod.Metadata.UUID] = pod
+	}
+
+	// Detect deleted pods
+	for podName := range k.knownPods {
+		if _, exists := currentPods[podName]; !exists {
+			log.Printf("Pod %s has been deleted. Cleaning up resources...", podName)
+			if err := k.CleanUpPod(podName); err != nil {
+				log.Printf("Error cleaning up pod %s: %v", podName, err)
+			} else {
+				log.Printf("Successfully cleaned up resources for pod %s", podName)
+			}
+		}
+	}
+
+	// Update knownPods to current state
+	k.knownPods = currentPods
+
+	// Process pending pods
+	for _, pod := range pods {
+		if pod.Status.Phase == apiobject.PodPending {
+			log.Printf("Pod %s is pending. Attempting to create containers...", pod.Metadata.Name)
+			if err := k.RuntimeManager.CreatePod(&pod); err != nil {
+				log.Printf("Error creating pod %s: %v", pod.Metadata.Name, err)
+			} else {
+				log.Printf("Successfully created containers for pod %s", pod.Metadata.Name)
+				// Update pod status to Running
+				pod.Status.Phase = apiobject.PodRunning
+
+				if err := k.UpdatePodStatus(&pod); err != nil {
+					log.Printf("Error updating pod status for %s: %v", pod.Metadata.Name, err)
+				} else {
+					log.Printf("Successfully updated pod status for %s to Running", pod.Metadata.Name)
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // CleanUpPod stops and removes all containers associated with the pod
@@ -190,7 +165,74 @@ func (k *Kubelet) UpdatePodStatus(pod *apiobject.PodStore) error {
 	return nil
 }
 
+func GetPrimaryIPv4Address() (string, error) {
+	desiredInterfaceNames := []string{"ens3", "ens33", "eth0"}
+	for _, name := range desiredInterfaceNames {
+		iface, err := net.InterfaceByName(name)
+		if err != nil {
+			continue
+		}
+
+		addrs, err := iface.Addrs()
+		if err != nil {
+			return "", err
+		}
+
+		for _, addr := range addrs {
+			ipNet, ok := addr.(*net.IPNet)
+			if ok && !ipNet.IP.IsLoopback() && ipNet.IP.To4() != nil {
+				return ipNet.IP.String(), nil
+			}
+		}
+	}
+
+	return "", errors.New("no interface found with the specified names")
+}
+
+func RegisterNode() error {
+	log.Printf("Registering node")
+
+	// if CheckIfRegisterd() {
+	// 	return nil
+	// }
+
+	nodeIP, err := GetPrimaryIPv4Address()
+	if err != nil {
+		return err
+	}
+
+	host, _ := os.Hostname()
+	node := apiobject.Node{
+		APIObject: apiobject.APIObject{
+			APIVersion: "v1",
+			Kind:       "Node",
+			Metadata: apiobject.Metadata{
+				Name: host,
+			},
+		},
+		Spec: apiobject.NodeSpec{IP: nodeIP},
+	}
+
+	url := configs.GetApiServerUrl() + configs.NodesURL
+	jsonData, _ := json.Marshal(node)
+	_, err = http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+
 // StartServer starts the Kubelet server to manage pods
-func (k *Kubelet) StartServer() {
-	k.MonitorAndManagePods()
+func (k *Kubelet) WatchPods() {
+
+	ticker := time.NewTicker(10 * time.Second)
+	for range ticker.C {
+
+		err := k.MonitorAndManagePods()
+		if err != nil {
+			log.Printf("KUBELET error: %v", err)
+			continue
+		}
+	}
 }

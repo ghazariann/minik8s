@@ -27,6 +27,13 @@
             "request": "launch",
             "program": "${workspaceFolder}/cmd/apiserver/main.go",
             "args": []
+        },
+        {
+            "name": "Debug Worker",
+            "type": "go",
+            "request": "launch",
+            "program": "${workspaceFolder}/cmd/worker/main.go",
+            "args": []
         }
     ]
 }

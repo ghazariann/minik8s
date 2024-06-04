@@ -27,7 +27,7 @@ type NodeStatus struct {
 }
 
 // ToNodeStore converts a Node to NodeStore.
-func (d *Node) ToNodeStore() *NodeStore {
+func (d *Node) ToStore() *NodeStore {
 	return &NodeStore{
 		APIObject: d.APIObject,
 		Spec:      d.Spec,

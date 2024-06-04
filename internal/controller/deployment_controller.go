@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"minik8s/internal/apiobject"
 	"minik8s/internal/configs"
@@ -21,7 +20,7 @@ func GetPodsFromAPIServer() ([]apiobject.PodStore, error) {
 
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Fatalf("Error sending request to list pods: %v", err)
+		return nil, fmt.Errorf("error sending request to list pods: %v", err)
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
@@ -38,7 +37,7 @@ func GetAllDeploymentsFromAPIServer() ([]apiobject.DeploymentStore, error) {
 
 	resp, err := http.Get(url)
 	if err != nil {
-		log.Fatalf("Error sending request to list deployments: %v", err)
+		return nil, fmt.Errorf("error sending request to list deployments: %v", err)
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
