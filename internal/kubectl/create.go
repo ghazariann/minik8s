@@ -101,7 +101,7 @@ func CreateServiceFromYAML(filename string) {
 		log.Fatalf("Error converting service data to JSON: %v", err)
 	}
 
-	url := configs.GetApiServerUrl() + configs.ServicesURL
+	url := configs.GetApiServerUrl() + configs.ServicesUrl
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		log.Fatalf("Error sending request: %v", err)

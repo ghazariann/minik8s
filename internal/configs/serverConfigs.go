@@ -20,7 +20,7 @@ func GetApiServerUrl() string {
 
 const (
 	NodeUrl  = "/node"
-	NodesURL = "/nodes"
+	NodesUrl = "/nodes"
 	// NodeSpecURL       = "/api/v1/nodes/:name"
 	// NodeSpecStatusURL = "/api/v1/nodes/:name/status"
 	// NodeAllPodsURL    = "/api/v1/nodes/:name/pods"
@@ -29,8 +29,8 @@ const (
 	PodStoreUrl = "/podStore"
 	PodsURL     = "/pods"
 
-	ServiceURL      = "/service"
-	ServicesURL     = "/services"
+	ServiceUrl      = "/service"
+	ServicesUrl     = "/services"
 	ServiceStoreURL = "/serviceStore"
 	DeploymentUrl   = "/deployment"
 	DeploymentsUrl  = "/deployments"
@@ -39,10 +39,3 @@ const (
 	HpaStoreUrl     = "/hpaStore"
 	HpasUrl         = "/hpas"
 )
-
-// create a path for the etcd key
-// var SERVICES_URL = path.Join(API_URL, ETCDServicePath)
-// var SERVICE_URL = path.Join(API_URL, ETCDServicePath)
-// var DEPLOYMENTS_URL = path.Join(API_URL, ETCDDeploymentPath)
-// var PODS_URL = path.Join(API_URL, ETCDPodPath)
-// var ENDPOINTS_URL = path.Join(API_URL, ETCDServicePath)

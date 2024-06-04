@@ -88,6 +88,24 @@ var CmdGetHpas = &cobra.Command{
 	},
 }
 
+// node
+var CmdGetNode = &cobra.Command{
+	Use:   "node [name]",
+	Short: "Get One node",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		GetNode(args[0])
+	},
+}
+
+var CmdGetNodes = &cobra.Command{
+	Use:   "nodes",
+	Short: "List all nodes",
+	Run: func(cmd *cobra.Command, args []string) {
+		ListNodes()
+	},
+}
+
 func GetPod(name string) {
 	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.PodUrl+"?name=%s", name)
 	resp, err := http.Get(url)
@@ -188,7 +206,7 @@ func GetAllPods() {
 }
 
 func GetService(name string) {
-	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.ServiceURL+"?name=%s", name)
+	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.ServiceUrl+"?name=%s", name)
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatalf("Error making request: %v", err)
@@ -202,7 +220,7 @@ func GetService(name string) {
 }
 
 func GetAllServices() {
-	url := configs.GetApiServerUrl() + configs.ServicesURL
+	url := configs.GetApiServerUrl() + configs.ServicesUrl
 	resp, err := http.Get(url)
 	if err != nil {
 		log.Fatalf("Error making request: %v", err)
@@ -295,6 +313,46 @@ func ListHpas() {
 		fmt.Printf("%-20s %-10d  %-10d\n", hpa.Metadata.Name, hpa.Spec.MinReplicas, hpa.Spec.MaxReplicas)
 	}
 }
+
+func GetNode(name string) {
+	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.NodeUrl+"?name=%s", name)
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Fatalf("Error making request: %v", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Error reading response body: %v", err)
+	}
+	fmt.Println(string(body))
+}
+
+func ListNodes() {
+	url := configs.GetApiServerUrl() + configs.NodesUrl
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Fatalf("Error sending request to list nodes: %v", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	var nodes []apiobject.NodeStore
+	if err := json.Unmarshal(body, &nodes); err != nil {
+		log.Fatalf("Error unmarshalling response body: %v", err)
+	}
+
+	if err != nil {
+		log.Fatalf("Error reading response body: %v", err)
+	}
+
+	// print Spec.IP, Status.HostName, Status.Condition, Status.NumPods, Status.CpuPercent, Status.MemPercent
+	fmt.Printf("%-15s  %-10s  %-10s %-10s %-10s %-10s\n", "IP", "HostName", "Condition", "NumPods", "CpuPercent", "MemPercent")
+	// Print each container's name and status
+	for _, node := range nodes {
+		fmt.Printf(" %-15s  %-10s %-10s %-10d %-10f %-10f\n", node.Spec.IP, node.Status.Hostname, node.Status.Condition, node.Status.NumPods, node.Status.CpuPercent, node.Status.MemPercent)
+	}
+
+}
 func init() {
 	GetCmd.AddCommand(CmdGetDeployment)
 	GetCmd.AddCommand(CmdGetDeployments)
@@ -304,4 +362,6 @@ func init() {
 	GetCmd.AddCommand(CmdGetAllPods)
 	GetCmd.AddCommand(CmdGetHpa)
 	GetCmd.AddCommand(CmdGetHpas)
+	GetCmd.AddCommand(CmdGetNode)
+	GetCmd.AddCommand(CmdGetNodes)
 }

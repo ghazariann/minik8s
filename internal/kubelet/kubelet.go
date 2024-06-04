@@ -213,7 +213,7 @@ func RegisterNode() error {
 		Spec: apiobject.NodeSpec{IP: nodeIP},
 	}
 
-	url := configs.GetApiServerUrl() + configs.NodesURL
+	url := configs.GetApiServerUrl() + configs.NodesUrl
 	jsonData, _ := json.Marshal(node)
 	_, err = http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {

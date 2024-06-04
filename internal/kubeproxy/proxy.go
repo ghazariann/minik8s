@@ -30,7 +30,7 @@ func NewKubeProxy() (*KubeProxy, error) {
 	}, nil
 }
 func (p *KubeProxy) GetAllServices() ([]apiobject.ServiceStore, error) {
-	url := configs.GetApiServerUrl() + configs.ServicesURL
+	url := configs.GetApiServerUrl() + configs.ServicesUrl
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err

@@ -48,7 +48,7 @@ func StartServer() {
 		}
 	})
 
-	http.HandleFunc(configs.ServiceURL, func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(configs.ServiceUrl, func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "GET":
 			handlers.GetService(w, r)
@@ -58,7 +58,7 @@ func StartServer() {
 			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
 		}
 	})
-	http.HandleFunc(configs.ServicesURL, func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(configs.ServicesUrl, func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "GET":
 			handlers.GetServices(w, r)
@@ -147,7 +147,7 @@ func StartServer() {
 		}
 	})
 	// nodes
-	http.HandleFunc(configs.NodesURL, func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(configs.NodesUrl, func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "GET":
 			handlers.GetNodes(w, r)
