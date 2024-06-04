@@ -33,12 +33,13 @@ func NewKubelet() (*Kubelet, error) {
 		return nil, err
 	}
 	runtimeManager := NewRuntimeManager(dockerClient)
-	RegisterNode()
+	hostname, _ := os.Hostname()
+	RegisterNode(hostname)
 
 	return &Kubelet{
 		RuntimeManager:  runtimeManager,
 		knownPods:       map[string]apiobject.PodStore{},
-		Name:            "kubelet",
+		Name:            hostname,
 		knownContainers: map[string]string{},
 	}, nil
 }
@@ -81,7 +82,15 @@ func (k *Kubelet) SyncContainers(knownContainers map[string]string, newContainer
 		}
 	}
 }
-
+func filterPodsByNodeName(pods []apiobject.PodStore, nodeName string) []apiobject.PodStore {
+	filteredPods := []apiobject.PodStore{}
+	for _, pod := range pods {
+		if pod.Spec.NodeName == nodeName {
+			filteredPods = append(filteredPods, pod)
+		}
+	}
+	return filteredPods
+}
 func (k *Kubelet) MonitorAndManagePods() error {
 
 	// Fetch all pods
@@ -90,6 +99,9 @@ func (k *Kubelet) MonitorAndManagePods() error {
 	k.knownContainers = containers
 
 	pods, err := k.GetAllPods()
+	// filter pods by node name
+
+	pods = filterPodsByNodeName(pods, k.Name)
 
 	if err != nil {
 		return err
@@ -126,7 +138,7 @@ func (k *Kubelet) MonitorAndManagePods() error {
 				// Update pod status to Running
 				pod.Status.Phase = apiobject.PodRunning
 
-				if err := k.UpdatePodStatus(&pod); err != nil {
+				if err := UpdatePodStatus(&pod); err != nil {
 					log.Printf("Error updating pod status for %s: %v", pod.Metadata.Name, err)
 				} else {
 					log.Printf("Successfully updated pod status for %s to Running", pod.Metadata.Name)
@@ -144,7 +156,7 @@ func (k *Kubelet) CleanUpPod(podName string) error {
 }
 
 // UpdatePodStatus sends a request to the API server to update the pod status
-func (k *Kubelet) UpdatePodStatus(pod *apiobject.PodStore) error {
+func UpdatePodStatus(pod *apiobject.PodStore) error {
 	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.PodStoreUrl+"?name=%s", pod.Metadata.Name)
 	podJson, err := json.Marshal(pod)
 	if err != nil {
@@ -189,25 +201,28 @@ func GetPrimaryIPv4Address() (string, error) {
 	return "", errors.New("no interface found with the specified names")
 }
 
-func RegisterNode() error {
-	log.Printf("Registering node")
+// func CheckIfRegisterd() bool {
+// 	url := configs.GetApiServerUrl() + configs.NodesUrl
+
+// }
+func RegisterNode(hostname string) error {
 
 	// if CheckIfRegisterd() {
+	// 	log.Printf("Node already registered")
 	// 	return nil
 	// }
-
+	log.Printf("Registering node")
 	nodeIP, err := GetPrimaryIPv4Address()
 	if err != nil {
 		return err
 	}
 
-	host, _ := os.Hostname()
 	node := apiobject.Node{
 		APIObject: apiobject.APIObject{
 			APIVersion: configs.API_VERSION,
 			Kind:       apiobject.NodeKind,
 			Metadata: apiobject.Metadata{
-				Name: host,
+				Name: hostname,
 			},
 		},
 		Spec: apiobject.NodeSpec{IP: nodeIP},

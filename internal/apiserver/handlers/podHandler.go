@@ -8,6 +8,7 @@ import (
 	"minik8s/internal/apiserver/etcdclient"
 	"minik8s/internal/apiserver/helpers"
 	"minik8s/internal/configs"
+	"minik8s/internal/scheduler"
 	"net/http"
 	"path"
 
@@ -72,16 +73,18 @@ func AddPod(w http.ResponseWriter, r *http.Request) {
 
 	podStore.Status.Phase = apiobject.PodPending
 
+	// TODO add namespace + name
+	scheduler.SchedulePod(podStore)
 	podStoreJson, err := json.Marshal(podStore)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// TODO add namespace + name
 	if err := etcdclient.PutKey(configs.ETCDPodPath+pod.Metadata.Name, string(podStoreJson)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprintf(w, "Pod created: %s", pod.Metadata.Name)
 }
@@ -125,9 +128,6 @@ func GetPod(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error encoding pod data: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	// Set content type and send the response
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(podStoreJson)
@@ -172,8 +172,8 @@ func UpdatePodStatus(w http.ResponseWriter, r *http.Request) {
 
 	// Update the pod data ( status in running and has weave IP)
 	podStore.Status = pod.Status
-	// move to backend
 	helpers.UpdateEndPoints(&podStore)
+	podStore.Spec.NodeName = pod.Spec.NodeName
 	// Marshal the updated pod data
 	podStoreJson, err := json.Marshal(podStore)
 	if err != nil {

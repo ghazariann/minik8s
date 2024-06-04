@@ -210,11 +210,11 @@ func GetAllPods() {
 		log.Fatalf("Error unmarshalling response body: %v", err)
 	}
 	// Print header
-	fmt.Printf("%-20s %-10s %-10s\n", "Name", "Status", "IP")
+	fmt.Printf("%-10s %-10s %-10s\n", "Name", "Status", "IP")
 
 	// Print each container's name and status
 	for _, pod := range pods {
-		fmt.Printf("%-20s %-10s %-10s\n", pod.Metadata.Name, pod.Status.Phase, pod.Status.PodIP)
+		fmt.Printf("%-10s %-10s %-10s\n", pod.Metadata.Name, pod.Status.Phase, pod.Status.PodIP)
 	}
 	// // Marshal with indentation for pretty printing
 	// formattedJSON, err := json.MarshalIndent(pods, "", "    ")
@@ -274,11 +274,11 @@ func GetAllServices() {
 		log.Fatalf("Error reading response body: %v", err)
 	}
 
-	fmt.Printf("%-20s  %-10s  %-10s %-10s \n", "Name", "Phase", "Type", "Cluster IP")
+	fmt.Printf("%-10s  %-10s  %-10s %-10s \n", "Name", "Phase", "Type", "Cluster IP")
 
 	// Print each container's name and status
 	for _, service := range services {
-		fmt.Printf("%-20s %-10s  %-10s %-10s \n", service.Metadata.Name, service.Status.Phase, service.Spec.Type, service.Spec.ClusterIP)
+		fmt.Printf("%-10s %-10s  %-10s %-10s \n", service.Metadata.Name, service.Status.Phase, service.Spec.Type, service.Spec.ClusterIP)
 	}
 }
 
@@ -300,11 +300,11 @@ func ListDeployments() {
 		log.Fatalf("Error reading response body: %v", err)
 	}
 
-	fmt.Printf("%-20s  %-10s  %-10s\n", "Name", "Replicas", "Ready Replicas")
+	fmt.Printf("%-10s  %-10s  %-10s\n", "Name", "Replicas", "Ready Replicas")
 
 	// Print each container's name and status
 	for _, deployment := range deployments {
-		fmt.Printf("%-20s %-10d  %-10d\n", deployment.Metadata.Name, deployment.Spec.Replicas, deployment.Status.ReadyReplicas)
+		fmt.Printf("%-10s %-10d  %-10d\n", deployment.Metadata.Name, deployment.Spec.Replicas, deployment.Status.ReadyReplicas)
 	}
 }
 
@@ -340,11 +340,11 @@ func ListHpas() {
 		log.Fatalf("Error reading response body: %v", err)
 	}
 
-	fmt.Printf("%-20s  %-10s %-10s %-10s %-10s %-10s\n", "Name", "Min Replicas", "Max Replicas", "Current Replicas", "currentCPUPercent", "currentMemPercent")
+	fmt.Printf("%-10s  %-10s %-10s %-10s %-10s %-10s\n", "Name", "Min Replicas", "Max Replicas", "Current Replicas", "currentCPUPercent", "currentMemPercent")
 
 	// Print each container's name and status
 	for _, hpa := range hpas {
-		fmt.Printf("%-20s %-10d %-10d %-10d %-10f %-10f\n", hpa.Metadata.Name, hpa.Spec.MinReplicas, hpa.Spec.MaxReplicas, hpa.Status.CurrentReplicas, hpa.Status.CurrentCPUPercent, hpa.Status.CurrentMemPercent)
+		fmt.Printf("%-10s %-10d %-10d %-10d %-10f %-10f\n", hpa.Metadata.Name, hpa.Spec.MinReplicas, hpa.Spec.MaxReplicas, hpa.Status.CurrentReplicas, hpa.Status.CurrentCPUPercent, hpa.Status.CurrentMemPercent)
 	}
 }
 

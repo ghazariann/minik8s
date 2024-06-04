@@ -12,4 +12,4 @@ docker ps
 ./kubectl get services
 # ./kubectl get endpoints
 ./kubectl get deployments
-./kubectl get hpa
+./kubectl get hpas
