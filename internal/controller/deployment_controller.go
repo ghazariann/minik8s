@@ -70,8 +70,8 @@ func AddReplica(deploymentMeta *apiobject.Metadata, pod *apiobject.PodTemplate, 
 	url := configs.GetApiServerUrl() + configs.PodsURL
 	newPod := apiobject.Pod{}
 	newPod.Metadata = pod.Metadata
-	newPod.Kind = "Pod"
-	newPod.APIVersion = "v1"
+	newPod.Kind = apiobject.PodKind
+	newPod.APIVersion = configs.API_VERSION
 	newPod.Spec = pod.Spec
 	// newPod.Metadata.Labels["deployement_name"] = deploymentMeta.Name
 	// newPod.Metadata.Labels["deployement_namespace"] = deploymentMeta.Namespace

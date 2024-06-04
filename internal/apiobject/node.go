@@ -17,8 +17,6 @@ type NodeSpec struct {
 }
 
 type NodeStatus struct {
-	Hostname   string    `json:"hostname" yaml:"hostname"`
-	Ip         string    `json:"ip" yaml:"ip"`
 	Condition  string    `json:"condition" yaml:"condition"` // ready, unknown
 	CpuPercent float64   `json:"cpuPercent" yaml:"cpuPercent"`
 	MemPercent float64   `json:"memPercent" yaml:"memPercent"`

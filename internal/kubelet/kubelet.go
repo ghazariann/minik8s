@@ -204,8 +204,8 @@ func RegisterNode() error {
 	host, _ := os.Hostname()
 	node := apiobject.Node{
 		APIObject: apiobject.APIObject{
-			APIVersion: "v1",
-			Kind:       "Node",
+			APIVersion: configs.API_VERSION,
+			Kind:       apiobject.NodeKind,
 			Metadata: apiobject.Metadata{
 				Name: host,
 			},

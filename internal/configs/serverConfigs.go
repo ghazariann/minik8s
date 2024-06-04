@@ -8,6 +8,7 @@ const (
 	LOCAL_API_URL        = SCHEMA + LOCAL_API_SERVER_IP + ":" + API_SERVER_PORT
 	MASTER_API_URL       = SCHEMA + MASTER_API_SERVER_IP + ":" + API_SERVER_PORT
 	masterNode           = true
+	API_VERSION          = "v1"
 )
 
 func GetApiServerUrl() string {

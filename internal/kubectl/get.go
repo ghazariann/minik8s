@@ -349,7 +349,7 @@ func ListNodes() {
 	fmt.Printf("%-15s  %-10s  %-10s %-10s %-10s %-10s\n", "IP", "HostName", "Condition", "NumPods", "CpuPercent", "MemPercent")
 	// Print each container's name and status
 	for _, node := range nodes {
-		fmt.Printf(" %-15s  %-10s %-10s %-10d %-10f %-10f\n", node.Spec.IP, node.Status.Hostname, node.Status.Condition, node.Status.NumPods, node.Status.CpuPercent, node.Status.MemPercent)
+		fmt.Printf(" %-15s  %-10s %-10s %-10d %-10f %-10f\n", node.Spec.IP, node.Metadata.Name, node.Status.Condition, node.Status.NumPods, node.Status.CpuPercent, node.Status.MemPercent)
 	}
 
 }

@@ -1,5 +1,14 @@
 package apiobject
 
+const (
+	PodKind        = "Pod"
+	ServiceKind    = "Service"
+	HpaKind        = "Hpa"
+	DeploymentKind = "Deployment"
+	NodeKind       = "Node"
+	DnsKind        = "Dns"
+)
+
 // APIObject is the base structure embedded in all K8s-like objects.
 type APIObject struct {
 	APIVersion string   `yaml:"apiVersion" json:"apiVersion"`
