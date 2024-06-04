@@ -12,9 +12,6 @@ require (
 	github.com/spf13/cobra v1.8.0
 	go.etcd.io/etcd/client/v3 v3.5.13
 	gopkg.in/yaml.v2 v2.4.0
-)
-
-require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
