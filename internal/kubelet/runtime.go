@@ -60,6 +60,37 @@ func (r *RuntimeManager) GetContainerResource(containerID string) (float64, floa
 	return cpuPercent, memoryPercent, nil
 }
 
+func (r *RuntimeManager) GetContainerState(info *types.ContainerJSON) *types.ContainerState {
+	if info == nil {
+		return &types.ContainerState{}
+	}
+
+	containerState := types.ContainerState{
+		Status:     info.State.Status,
+		StartedAt:  info.State.StartedAt,
+		FinishedAt: info.State.FinishedAt,
+		Health:     info.State.Health,
+		Error:      info.State.Error,
+		ExitCode:   info.State.ExitCode,
+		Pid:        info.State.Pid,
+		Running:    info.State.Running,
+		Paused:     info.State.Paused,
+		Restarting: info.State.Restarting,
+		OOMKilled:  info.State.OOMKilled,
+		Dead:       info.State.Dead,
+	}
+
+	return &containerState
+}
+func (r *RuntimeManager) GetInspectInfo(containerID string) (*types.ContainerJSON, error) {
+	ctx := context.Background()
+	containerInfo, err := r.DockerClient.Client.ContainerInspect(ctx, containerID)
+	if err != nil {
+		return &types.ContainerJSON{}, fmt.Errorf("failed to inspect container %s: %v", containerID, err)
+	}
+	return &containerInfo, nil
+}
+
 // CreatePod creates a pod with the specified configuration
 func (r *RuntimeManager) CreatePod(pod *apiobject.PodStore) error {
 	ctx := context.Background()
@@ -73,8 +104,12 @@ func (r *RuntimeManager) CreatePod(pod *apiobject.PodStore) error {
 	}
 
 	for _, containerSpec := range pod.Spec.Containers {
-		containerID, _ := r.createContainerWithLabel(images, ctx, pauseID, pod.Metadata, containerSpec)
+		containerID, _ := r.createContainerWithLabel(images, ctx, pauseID, *pod.ToPod(), containerSpec)
 		if containerID != "" {
+
+			info, _ := r.GetInspectInfo(containerID)
+			containerStatus := r.GetContainerState(info)
+			pod.Status.ContainerStatuses = append(pod.Status.ContainerStatuses, *containerStatus)
 			cpuPercent, memoryPercent, _ := r.GetContainerResource(containerID)
 			pod.Status.CpuPercent += cpuPercent
 			pod.Status.MemPercent += memoryPercent
@@ -143,8 +178,39 @@ func (r *RuntimeManager) createPauseContainer(images []image.Summary, ctx contex
 	}
 	return pauseID, nil
 }
+func (r *RuntimeManager) parseVolumeBinds(podVols []apiobject.Volume, containerMounts []apiobject.VolumeMount) ([]string, error) {
+	volumeMap := make(map[string]string)
 
-func (r *RuntimeManager) createContainerWithLabel(images []image.Summary, ctx context.Context, pauseID string, podMeta apiobject.Metadata, containerSpec apiobject.Container) (string, error) {
+	// Populate the map with volumes that have HostPath set
+	for _, volume := range podVols {
+		if volume.HostPath.Path != "" {
+			volumeMap[volume.Name] = volume.HostPath.Path
+		}
+	}
+
+	var volumeBinds []string
+
+	// Process the volume mounts
+	for _, volumeMount := range containerMounts {
+		hostPath, exists := volumeMap[volumeMount.Name]
+		if !exists {
+			return nil, fmt.Errorf("volumeMount.Name %s not found in pod volumes", volumeMount.Name)
+		}
+
+		// Validate if HostPath is of the correct type
+		if hostPath == "" {
+			return nil, fmt.Errorf("volume %s is not of hostPath type", volumeMount.Name)
+		}
+
+		// Construct the bind mount string
+		volumeBind := fmt.Sprintf("%s:%s", hostPath, volumeMount.MountPath)
+		volumeBinds = append(volumeBinds, volumeBind)
+	}
+
+	return volumeBinds, nil
+}
+
+func (r *RuntimeManager) createContainerWithLabel(images []image.Summary, ctx context.Context, pauseID string, pod apiobject.Pod, containerSpec apiobject.Container) (string, error) {
 	// Check and pull the container image if not present
 	if !r.DockerClient.ImageExists(images, containerSpec.Image) {
 		if err := r.DockerClient.PullImage(containerSpec.Image); err != nil {
@@ -152,16 +218,20 @@ func (r *RuntimeManager) createContainerWithLabel(images []image.Summary, ctx co
 		}
 	}
 
-	containerName := fmt.Sprintf("%s_%s", podMeta.Name, containerSpec.Name)
+	containerName := fmt.Sprintf("%s_%s", pod.Metadata.Name, containerSpec.Name)
 	if !r.DockerClient.ContainerExists(containerName) {
-		labels := map[string]string{"pod_uid": podMeta.UUID}
+		labels := map[string]string{"pod_uid": pod.Metadata.UUID}
 		pauseRef := "container:" + pauseID
-
+		containerEnv := []string{}
+		for _, env := range containerSpec.Env {
+			containerEnv = append(containerEnv, env.Name+"="+env.Value)
+		}
 		contConf := container.Config{
 			Image:      containerSpec.Image,
 			Entrypoint: containerSpec.Command,
 			Cmd:        containerSpec.Args,
 			Labels:     labels,
+			Env:        containerEnv,
 		}
 		contRes := container.Resources{}
 		if containerSpec.Resources.Limits.Memory != "" && containerSpec.Resources.Limits.Cpu != "" {
@@ -172,11 +242,15 @@ func (r *RuntimeManager) createContainerWithLabel(images []image.Summary, ctx co
 				NanoCPUs: cpuPer,
 			}
 		}
+		contianerBinds, _ := r.parseVolumeBinds(pod.Spec.Volumes, containerSpec.VolumeMounts)
+
 		hostConf := container.HostConfig{
 			PidMode:     container.PidMode(pauseRef),
 			IpcMode:     container.IpcMode(pauseRef),
 			NetworkMode: container.NetworkMode(pauseRef),
 			Resources:   contRes,
+			VolumesFrom: []string{pauseID},
+			Binds:       contianerBinds,
 		}
 		// Create the application container if not present
 		resp, err := r.DockerClient.Client.ContainerCreate(ctx, &contConf, &hostConf, &network.NetworkingConfig{}, nil, containerName)

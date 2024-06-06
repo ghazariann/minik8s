@@ -11,6 +11,7 @@ import (
 	"minik8s/internal/scheduler"
 	"net/http"
 	"path"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -72,7 +73,7 @@ func AddPod(w http.ResponseWriter, r *http.Request) {
 	podStore := pod.ToStore()
 
 	podStore.Status.Phase = apiobject.PodPending
-
+	podStore.Status.LastUpdated = time.Now()
 	// TODO add namespace + name
 	scheduler.SchedulePod(podStore)
 	podStoreJson, err := json.Marshal(podStore)
@@ -174,6 +175,7 @@ func UpdatePodStatus(w http.ResponseWriter, r *http.Request) {
 	podStore.Status = pod.Status
 	helpers.UpdateEndPoints(&podStore)
 	podStore.Spec.NodeName = pod.Spec.NodeName
+	podStore.Status.LastUpdated = time.Now()
 	// Marshal the updated pod data
 	podStoreJson, err := json.Marshal(podStore)
 	if err != nil {
@@ -230,6 +232,7 @@ func UpdatePod(w http.ResponseWriter, r *http.Request) {
 	// Update the pod data
 	podStore.Spec = pod.Spec
 	podStore.Metadata.Labels = pod.Metadata.Labels
+	podStore.Status.LastUpdated = time.Now()
 
 	// Marshal the updated pod data
 	podStoreJson, err := json.Marshal(podStore)

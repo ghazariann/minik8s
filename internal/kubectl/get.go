@@ -8,6 +8,7 @@ import (
 	"minik8s/internal/apiobject"
 	"minik8s/internal/configs"
 	"net/http"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -192,6 +193,19 @@ func GetDeployment(name string) {
 
 	fmt.Println(string(formattedJSON))
 }
+func getPodRuntime(status apiobject.PodStatus) string {
+	var ContainerCreatedTime time.Time
+	var currTime time.Time
+	if len(status.ContainerStatuses) != 0 {
+		// arbitary get first one
+		ContainerCreatedTime, _ = time.Parse(time.RFC3339, status.ContainerStatuses[0].StartedAt)
+		currTime = time.Now()
+		return currTime.Sub(ContainerCreatedTime).Truncate(time.Second).String()
+	} else {
+		return "N/A"
+	}
+
+}
 func GetAllPods() {
 	url := configs.GetApiServerUrl() + configs.PodsURL
 	resp, err := http.Get(url)
@@ -210,11 +224,12 @@ func GetAllPods() {
 		log.Fatalf("Error unmarshalling response body: %v", err)
 	}
 	// Print header
-	fmt.Printf("%-30s %-10s %-10s %-20s %-10s\n", "Name", "Status", "IP", "Node", "Runtime")
+	fmt.Printf("%-30s %-10s %-10s %-20s %-10s\n", "Name", "Status", "IP", "Runtime", "Node")
 
 	// Print each container's name and status
 	for _, pod := range pods {
-		fmt.Printf("%-30s %-10s %-10s %-20s %-10s\n", pod.Metadata.Name, pod.Status.Phase, pod.Status.PodIP, pod.Spec.NodeName, pod.Status.UpdateTime)
+		runtime := getPodRuntime(pod.Status)
+		fmt.Printf("%-30s %-10s %-10s %-20s %-10s\n", pod.Metadata.Name, pod.Status.Phase, pod.Status.PodIP, runtime, pod.Spec.NodeName)
 	}
 	// // Marshal with indentation for pretty printing
 	// formattedJSON, err := json.MarshalIndent(pods, "", "    ")

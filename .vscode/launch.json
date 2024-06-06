@@ -16,7 +16,7 @@
             "type": "go",
             "request": "launch",
             "program": "${workspaceFolder}/cmd/kubectl/main.go",
-            "args": ["get", "pod", "mongodb-deployment-hoyte"],
+            "args": ["create", "pod", "-f", "testdata/nginxPod.yaml"],
             "env": {},
             "preLaunchTask": "build kubectl",
             "cwd": "${workspaceFolder}"
