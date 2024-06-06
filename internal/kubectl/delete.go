@@ -57,6 +57,14 @@ var CmdDeleteNode = &cobra.Command{
 	},
 }
 
+var CmdDeleteDns = &cobra.Command{
+	Use:  "dns [name]",
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		deleteDns(args[0])
+	},
+}
+
 func deleteService(name string) {
 	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.ServiceUrl+"?name=%s", name)
 	req, err := http.NewRequest("DELETE", url, nil)
@@ -131,6 +139,24 @@ func deleteHpa(name string) {
 }
 func deleteNode(name string) {
 	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.NodeUrl+"?name=%s", name)
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		log.Fatalf("Error creating request: %v", err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatalf("Error making request: %v", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Error reading response body: %v", err)
+	}
+	fmt.Println(string(body))
+}
+
+func deleteDns(name string) {
+	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.DnsUrl+"?name=%s", name)
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		log.Fatalf("Error creating request: %v", err)

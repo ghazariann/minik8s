@@ -127,6 +127,22 @@ var CmdGetNodes = &cobra.Command{
 	},
 }
 
+var CmdGetDns = &cobra.Command{
+	Use:   "dns",
+	Short: "Get DNS",
+	Run: func(cmd *cobra.Command, args []string) {
+		GetDns()
+	},
+}
+
+var CmdGetDnss = &cobra.Command{
+	Use:   "dnss",
+	Short: "Get DNS",
+	Run: func(cmd *cobra.Command, args []string) {
+		ListDns()
+	},
+}
+
 func GetPod(name string) {
 	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.PodUrl+"?name=%s", name)
 	resp, err := http.Get(url)
@@ -407,6 +423,42 @@ func ListNodes() {
 	}
 
 }
+
+func GetDns() {
+	url := configs.GetApiServerUrl() + configs.DnsUrl
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Fatalf("Error making request: %v", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Error reading response body: %v", err)
+	}
+	fmt.Println(string(body))
+}
+
+func ListDns() {
+	url := configs.GetApiServerUrl() + configs.DnssUrl
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Fatalf("Error sending request to list dns: %v", err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	var dnss []apiobject.DnsStore
+	if err := json.Unmarshal(body, &dnss); err != nil {
+		log.Fatalf("Error unmarshalling response body: %v", err)
+	}
+	fmt.Printf("%-15s  %-10s  %-10s %-10s \n", "Name", "Host", "Phase", "Paths")
+	for _, dns := range dnss {
+		paths := ""
+		for _, path := range dns.Spec.Paths {
+			paths = paths + " " + path.ServiceName + "/" + path.ServicePort
+		}
+		fmt.Printf(" %-15s  %-10s %-10s %-10s\n", dns.Metadata.Name, dns.Spec.Host, dns.Status.Phase, paths)
+	}
+}
 func init() {
 	GetCmd.AddCommand(CmdGetDeployment)
 	GetCmd.AddCommand(CmdGetDeployments)
@@ -420,4 +472,6 @@ func init() {
 	GetCmd.AddCommand(CmdGetNodes)
 	GetCmd.AddCommand(CmdGetAll)
 	GetCmd.AddCommand(CmdGetEndpoints)
+	GetCmd.AddCommand(CmdGetDns)
+	GetCmd.AddCommand(CmdGetDnss)
 }

@@ -22,9 +22,6 @@ func GetApiServerUrl() string {
 const (
 	NodeUrl  = "/node"
 	NodesUrl = "/nodes"
-	// NodeSpecURL       = "/api/v1/nodes/:name"
-	// NodeSpecStatusURL = "/api/v1/nodes/:name/status"
-	// NodeAllPodsURL    = "/api/v1/nodes/:name/pods"
 
 	PodUrl      = "/pod"
 	PodStoreUrl = "/podStore"
@@ -33,10 +30,16 @@ const (
 	ServiceUrl      = "/service"
 	ServicesUrl     = "/services"
 	ServiceStoreURL = "/serviceStore"
-	DeploymentUrl   = "/deployment"
-	DeploymentsUrl  = "/deployments"
-	EndpointsURL    = "/endpoints"
-	HpaUrl          = "/hpa"
-	HpaStoreUrl     = "/hpaStore"
-	HpasUrl         = "/hpas"
+
+	DeploymentUrl  = "/deployment"
+	DeploymentsUrl = "/deployments"
+
+	EndpointsURL = "/endpoints"
+
+	HpaUrl      = "/hpa"
+	HpaStoreUrl = "/hpaStore"
+	HpasUrl     = "/hpas"
+
+	DnsUrl  = "/dns"
+	DnssUrl = "/dnss"
 )

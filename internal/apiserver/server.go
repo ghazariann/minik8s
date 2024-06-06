@@ -167,6 +167,30 @@ func StartServer() {
 
 		}
 	})
+	// dns
+	http.HandleFunc(configs.DnsUrl, func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "GET":
+			handlers.GetDns(w, r)
+		case "DELETE":
+			handlers.DeleteDns(w, r)
+		case "POST":
+			handlers.UpdateDns(w, r)
+		default:
+			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
+		}
+	})
+	// dnss
+	http.HandleFunc(configs.DnssUrl, func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "GET":
+			handlers.GetDnss(w, r)
+		case "POST":
+			handlers.AddDns(w, r)
+		default:
+			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
+		}
+	})
 
 	fmt.Println("API Server starting on port " + configs.API_SERVER_PORT + " ...")
 	if err := http.ListenAndServe(":"+configs.API_SERVER_PORT, nil); err != nil {
