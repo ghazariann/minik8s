@@ -23,5 +23,6 @@ func main() {
 		kubeproxyInstance.WatchService()
 	}()
 
+	defer kubelet.UnRegisterNode()
 	wg.Wait() // Wait for all goroutines to complete
 }

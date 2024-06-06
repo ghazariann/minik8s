@@ -25,6 +25,35 @@ type Kubelet struct {
 func IsRegisterd() bool {
 	return false
 }
+func UnRegisterNode() {
+	// if !IsRegisterd() {
+	// 	log.Printf("Node not registered")
+	// 	return
+	// }
+	log.Printf("Unregistering node")
+	nodeIP, err := GetPrimaryIPv4Address()
+	if err != nil {
+		log.Printf("Error getting node IP: %v", err)
+		return
+	}
+
+	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.NodesUrl+"?ip=%s", nodeIP)
+	req, _ := http.NewRequest(http.MethodDelete, url, nil)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Printf("Error unregistering node: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Failed to unregister node: %s", string(body))
+		return
+	}
+
+	log.Printf("Successfully unregistered node")
+}
 
 // NewKubelet initializes and returns a new Kubelet
 func NewKubelet() (*Kubelet, error) {

@@ -210,11 +210,11 @@ func GetAllPods() {
 		log.Fatalf("Error unmarshalling response body: %v", err)
 	}
 	// Print header
-	fmt.Printf("%-10s %-10s %-10s\n", "Name", "Status", "IP")
+	fmt.Printf("%-30s %-10s %-10s %-20s %-10s\n", "Name", "Status", "IP", "Node", "Runtime")
 
 	// Print each container's name and status
 	for _, pod := range pods {
-		fmt.Printf("%-10s %-10s %-10s\n", pod.Metadata.Name, pod.Status.Phase, pod.Status.PodIP)
+		fmt.Printf("%-30s %-10s %-10s %-20s %-10s\n", pod.Metadata.Name, pod.Status.Phase, pod.Status.PodIP, pod.Spec.NodeName, pod.Status.UpdateTime)
 	}
 	// // Marshal with indentation for pretty printing
 	// formattedJSON, err := json.MarshalIndent(pods, "", "    ")
@@ -274,11 +274,16 @@ func GetAllServices() {
 		log.Fatalf("Error reading response body: %v", err)
 	}
 
-	fmt.Printf("%-10s  %-10s  %-10s %-10s \n", "Name", "Phase", "Type", "Cluster IP")
+	fmt.Printf("%-15s  %-10s   %-15s %-30s\n", "Name", "Phase", "Cluster IP", "Endpoints")
 
 	// Print each container's name and status
 	for _, service := range services {
-		fmt.Printf("%-10s %-10s  %-10s %-10s \n", service.Metadata.Name, service.Status.Phase, service.Spec.Type, service.Spec.ClusterIP)
+		// get endpoints in string with ; concat
+		endpoints := ""
+		for _, endpoint := range service.Status.Endpoints {
+			endpoints = endpoints + " " + endpoint.IP + "/" + endpoint.Ports[0]
+		}
+		fmt.Printf("%-15s %-10s %-15s %-30s \n", service.Metadata.Name, service.Status.Phase, service.Spec.ClusterIP, endpoints)
 	}
 }
 
@@ -399,4 +404,5 @@ func init() {
 	GetCmd.AddCommand(CmdGetNode)
 	GetCmd.AddCommand(CmdGetNodes)
 	GetCmd.AddCommand(CmdGetAll)
+	GetCmd.AddCommand(CmdGetEndpoints)
 }
