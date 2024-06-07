@@ -3,7 +3,8 @@ kind: Dns
 metadata:
   name: test-dns
 spec:
-  host: vahag.com
+  hostname: vahag.com
   paths:
-  - ServiceName: service-example
-    ServicePort: 88
+  - serviceName: simple-service
+    servicePort: 27017
+    urlPath : /test

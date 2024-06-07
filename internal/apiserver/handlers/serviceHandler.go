@@ -62,10 +62,10 @@ func AddService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if exists, _ := etcdclient.KeyExists(configs.ETCDServicePath + service.Metadata.Name); exists {
-	// 	http.Error(w, "Service already exists", http.StatusConflict)
-	// 	return
-	// }
+	if exists, _ := etcdclient.KeyExists(configs.ETCDServicePath + service.Metadata.Name); exists {
+		http.Error(w, "Service already exists", http.StatusConflict)
+		return
+	}
 	service.Spec.ClusterIP, _ = helpers.AllocateNewClusterIP()
 	service.Metadata.UUID = uuid.New().String()
 	serviceStore := service.ToServiceStore()

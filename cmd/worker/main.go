@@ -18,6 +18,7 @@ func main() {
 
 	kubeproxyInstance, _ := kubeproxy.NewKubeProxy()
 	wg.Add(1)
+	// kubeproxyInstance.CreateNginxPod()
 	go func() {
 		defer wg.Done()
 		kubeproxyInstance.WatchService()

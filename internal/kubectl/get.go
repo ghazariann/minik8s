@@ -453,10 +453,12 @@ func ListDns() {
 	fmt.Printf("%-15s  %-10s  %-10s %-10s \n", "Name", "Host", "Phase", "Paths")
 	for _, dns := range dnss {
 		paths := ""
+		urls := ""
 		for _, path := range dns.Spec.Paths {
 			paths = paths + " " + path.ServiceName + "/" + path.ServicePort
+			urls = urls + " " + dns.Spec.Hostname + "/" + path.UrlPath
 		}
-		fmt.Printf(" %-15s  %-10s %-10s %-10s\n", dns.Metadata.Name, dns.Spec.Host, dns.Status.Phase, paths)
+		fmt.Printf(" %-15s  %-10s %-10s %-10s\n", dns.Metadata.Name, dns.Spec.Hostname, dns.Status.Phase, paths)
 	}
 }
 func init() {

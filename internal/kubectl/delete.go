@@ -179,4 +179,5 @@ func init() {
 	DeleteCmd.AddCommand(CmdDeleteService)
 	DeleteCmd.AddCommand(CmdDeleteHpa)
 	DeleteCmd.AddCommand(CmdDeleteNode)
+	DeleteCmd.AddCommand(CmdDeleteDns)
 }

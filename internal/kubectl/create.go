@@ -61,7 +61,7 @@ var CmdCreateDns = &cobra.Command{
 	Short: "Create a DNS service",
 	Run: func(cmd *cobra.Command, args []string) {
 		filename, _ := cmd.Flags().GetString("filename")
-		CreateDnsService(filename)
+		CreateDns(filename)
 	},
 }
 
@@ -180,7 +180,7 @@ func CreateHpaFromYAML(filename string) {
 	fmt.Println(string(body))
 }
 
-func CreateDnsService(filename string) {
+func CreateDns(filename string) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		log.Fatalf("Error reading YAML file: %v", err)
@@ -193,7 +193,7 @@ func CreateDnsService(filename string) {
 	if err != nil {
 		log.Fatalf("Error converting service data to JSON: %v", err)
 	}
-	url := configs.GetApiServerUrl() + configs.DnsUrl
+	url := configs.GetApiServerUrl() + configs.DnssUrl
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		log.Fatalf("Error sending request: %v", err)

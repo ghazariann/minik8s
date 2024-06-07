@@ -125,6 +125,7 @@ func updateServiceEndpoints(key, value string, allEndpoints []apiobject.Endpoint
 			return err
 		}
 
+		// Update service store (override)
 		svcURL := path.Join(configs.ETCDServicePath, serviceStore.Metadata.Name)
 		if err := etcdclient.PutKey(svcURL, string(serviceJson)); err != nil {
 			return err

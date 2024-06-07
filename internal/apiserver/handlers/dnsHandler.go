@@ -81,7 +81,7 @@ func AddDns(w http.ResponseWriter, r *http.Request) {
 	dns.Metadata.UUID = uuid.New().String()
 
 	dnsStore := dns.ToDnsStore()
-
+	dnsStore.Status.Phase = "pending"
 	dnsStoreJson, err := json.Marshal(dnsStore)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

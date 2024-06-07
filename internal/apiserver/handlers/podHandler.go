@@ -173,7 +173,7 @@ func UpdatePodStatus(w http.ResponseWriter, r *http.Request) {
 
 	// Update the pod data ( status in running and has weave IP)
 	podStore.Status = pod.Status
-	helpers.UpdateEndPoints(&podStore)
+	helpers.UpdateEndPoints(&podStore) // will update service too
 	podStore.Spec.NodeName = pod.Spec.NodeName
 	podStore.Status.LastUpdated = time.Now()
 	// Marshal the updated pod data
@@ -286,6 +286,8 @@ func DeletePod(w http.ResponseWriter, r *http.Request) {
 	for key, value := range pod.Metadata.Labels {
 		endpointsKVURL := path.Join(configs.ETCDEndpointPath, key, value, pod.Metadata.UUID)
 		etcdclient.DeleteKey(endpointsKVURL)
+		// update service
+
 	}
 	// Respond with confirmation
 	fmt.Fprintf(w, "Pod deleted: %s", podName)

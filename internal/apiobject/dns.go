@@ -1,14 +1,15 @@
 package apiobject
 
 type Path struct {
+	UrlPath     string `json:"urlPath" yaml:"urlPath"`
 	ServiceName string `json:"serviceName" yaml:"serviceName"`
 	ServicePort string `json:"servicePort" yaml:"servicePort"`
 	ServiceIp   string `json:"serviceIp" yaml:"serviceIp"`
 }
 
 type DnsSpec struct {
-	Host  string `json:"host" yaml:"host"`
-	Paths []Path `json:"paths" yaml:"paths"`
+	Hostname string `json:"hostname" yaml:"hostname"`
+	Paths    []Path `json:"paths" yaml:"paths"`
 }
 
 type Dns struct {

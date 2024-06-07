@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 
@@ -79,12 +80,12 @@ func NewDockerClient() (*DockerClient, error) {
 // PullImage pulls a Docker image
 func (d *DockerClient) PullImage(imageName string) error {
 	ctx := context.Background()
-	reader, err := d.Client.ImagePull(ctx, imageName, types.ImagePullOptions{})
+	reader, err := d.Client.ImagePull(ctx, imageName, image.PullOptions{})
 	if err != nil {
 		return err
 	}
 	defer reader.Close()
-	_, err = io.Copy(io.Discard, reader)
+	_, err = io.Copy(os.Stdout, reader)
 	return err
 }
 
