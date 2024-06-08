@@ -2,28 +2,24 @@ apiVersion: v1
 kind: Pod
 metadata:
   labels:
-    app: mongodb
-  name: pod-example2
+    app: simple_service
+  name: pod-example1
   namespace: default
 spec:
   containers:
     - image: nginx:latest
       name: test1
       ports:
-        - containerPort: 80
-    - image: yuhaohu/cloud-os:latest
-      name: test2
-      ports:
-        - containerPort: 18080
-    - image: docker.io/library/redis:latest
+        - containerPort: 800
+    - image: redis:latest
       name: test3
       command: ["sh", "-c", "redis-server --appendonly yes"]
       ports:
         - containerPort: 6379
-resources:
-  requests:
-    memory: "10Mi"  # 10M
-    cpu: "10m"
-  limits:
-    memory: "20Mi"   # 10Mi will fail the container to start
-    cpu: "10m"  
+# resources:
+#   requests:
+#     memory: "10Mi"  # 10M
+#     cpu: "10m"
+#   limits:
+#     memory: "20Mi"   # 10Mi will fail the container to start
+#     cpu: "10m"  

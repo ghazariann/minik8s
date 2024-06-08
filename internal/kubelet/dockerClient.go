@@ -172,9 +172,34 @@ func (d *DockerClient) ListPodContainers() (map[string]string, error) {
 	// Iterate through the containers and populate the map
 	for _, cnt := range containers {
 		podUID := cnt.Labels["pod_uid"]
-		containerName := cnt.Names[0] // Assuming the container name is in the format "/container_name"
-		podContainers[containerName] = podUID
+		containerID := cnt.ID
+		// containerName := cnt.Names[0] // Assuming the container name is in the format "/container_name"
+		podContainers[containerID] = podUID
 	}
 
 	return podContainers, nil
+}
+
+func GetIDFromContainerName(containerName string) string {
+
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		log.Printf("Error creating docker client: %v", err)
+		return ""
+	}
+
+	containers, err := cli.ContainerList(ctx, container.ListOptions{All: true})
+	if err != nil {
+		log.Printf("Error listing containers: %v", err)
+		return ""
+	}
+
+	for _, container := range containers {
+		if containerName == strings.TrimPrefix(container.Names[0], "/") {
+			return container.ID
+		}
+	}
+
+	return ""
 }

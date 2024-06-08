@@ -1,0 +1,17 @@
+{
+  "go.gopath": "/root/go",
+  "go.goroot": "/usr/local/go",
+  "go.useLanguageServer": true,
+  "go.alternateTools": {
+    "staticcheck": "staticcheck"
+  },
+ "go.toolsEnvVars": {
+        "GOPROXY": "https://goproxy.cn,direct",
+    },
+    "terminal.integrated.env.linux": {
+        "GOPROXY": "https://goproxy.cn,direct",
+    },
+  "go.toolsManagement.autoUpdate": true,
+  "go.formatTool": "gofmt",
+  "go.toolsGopath": "/root/go",
+}

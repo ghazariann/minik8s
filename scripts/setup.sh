@@ -44,6 +44,7 @@ else
     sudo tar -C /usr/local -xzf /tmp/go.tar.gz
 
     echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+    export GOPROXY=https://goproxy.cn,direct
     go version
     go mod tidy
 fi

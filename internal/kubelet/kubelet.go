@@ -99,16 +99,37 @@ func (k *Kubelet) GetAllPods() ([]apiobject.PodStore, error) {
 //	}
 func (k *Kubelet) SyncContainers(knownContainers map[string]string, newContainers map[string]string, pods map[string]apiobject.PodStore) {
 	// Check for missing containers
-	for containerName, podUID := range knownContainers {
-		if _, ok := newContainers[containerName]; !ok { // one or two does not matter
+	for containerID, podUID := range knownContainers {
+		if _, ok := newContainers[containerID]; !ok { // one or two does not matter
 			// Container is missing, look for a matching pod
 			if pod, podExists := pods[podUID]; podExists {
 				// Pod exists, recreate the missing container
-				log.Printf("Recreating missing container with name: %s", containerName)
+				log.Printf("Recreating missing container with id: %s", containerID)
 				// list and find the container in pod.spec.containers
 				k.RuntimeManager.CreatePod(&pod)
+				if err := UpdatePodStatus(&pod); err != nil {
+					log.Printf("Error updating pod status for %s: %v", pod.Metadata.Name, err)
+				} else {
+					log.Printf("Successfully updated pod status for %s to Running", pod.Metadata.Name)
+				}
 			}
 		}
+		if containerID == "" {
+			continue
+		}
+		// check is container is running
+		info, _ := k.RuntimeManager.GetInspectInfo(containerID)
+		if info == nil {
+			log.Printf("Container %s not found", containerID)
+			continue
+		}
+		containerStatus := k.RuntimeManager.GetContainerState(info)
+		if containerStatus.Status != "running" {
+			// Container is not running, restart it
+			log.Printf("Container %s is not running, restarting...", containerID)
+			k.RuntimeManager.RestartContainer(containerID)
+		}
+
 	}
 }
 func filterPodsByNodeName(pods []apiobject.PodStore, nodeName string) []apiobject.PodStore {
@@ -158,20 +179,13 @@ func (k *Kubelet) MonitorAndManagePods() error {
 
 	// Process pending pods
 	for _, pod := range pods {
-		if pod.Status.Phase == apiobject.PodPending {
+		if pod.Status.Phase != apiobject.PodRunning {
 			log.Printf("Pod %s is pending. Attempting to create containers...", pod.Metadata.Name)
-			if err := k.RuntimeManager.CreatePod(&pod); err != nil {
-				log.Printf("Error creating pod %s: %v", pod.Metadata.Name, err)
+			k.RuntimeManager.CreatePod(&pod)
+			if err := UpdatePodStatus(&pod); err != nil {
+				log.Printf("Error updating pod status for %s: %v", pod.Metadata.Name, err)
 			} else {
-				log.Printf("Successfully created containers for pod %s", pod.Metadata.Name)
-				// Update pod status to Running
-				pod.Status.Phase = apiobject.PodRunning
-
-				if err := UpdatePodStatus(&pod); err != nil {
-					log.Printf("Error updating pod status for %s: %v", pod.Metadata.Name, err)
-				} else {
-					log.Printf("Successfully updated pod status for %s to Running", pod.Metadata.Name)
-				}
+				log.Printf("Successfully updated pod status to %s", pod.Status.Phase)
 			}
 		}
 	}

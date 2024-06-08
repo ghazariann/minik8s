@@ -1,13 +1,23 @@
-apiVersion: v1 
+apiVersion: v1
 kind: Pod
 metadata:
   labels:
-    app: echo_server
-  name: pod-example1
-  namespace: default
+    app: greet-server
+  name: greet-pod
 spec:
   containers:
-    - image: yuhaohu/cloud-os
-      name: nettest1
+    - image: greeting-app
+      name: greet-container
+      env:
+        - name: NAME
+          value: "World"
+      ports:
+        - containerPort: 5000
+    - image: welcome-app
+      name: welcome-container
+      env:
+        - name: VERSION
+          value: "2"
       ports:
         - containerPort: 80
+  nodeName: vahag-master

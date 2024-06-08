@@ -2,12 +2,12 @@ apiVersion: v1
 kind: Pod
 metadata:
   labels:
-    app: simple_service
+    app: echo_server
   name: pod-example2
   namespace: default
 spec:
   containers:
-    - image: yuhaohu/cloud-os
-      name: nettest1
+    - image: nginx-version-two
+      name: nettest2
       ports:
         - containerPort: 80

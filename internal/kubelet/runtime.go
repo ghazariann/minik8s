@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"minik8s/internal/apiobject" // Ensure correct import path
+	"strconv"
 	"strings"
 
 	"minik8s/utils"
@@ -15,6 +16,7 @@ import (
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
+	"github.com/docker/go-connections/nat"
 )
 
 type RuntimeManager struct {
@@ -33,11 +35,17 @@ func calculateCPUPercentUnix(previous types.Stats) float64 {
 	if onlineCPUs == 0.0 {
 		onlineCPUs = float64(len(previous.CPUStats.CPUUsage.PercpuUsage))
 	}
+	if onlineCPUs == 0.0 {
+		return 0.0
+	}
 	cpuPercent := (cpuDelta / systemDelta) * onlineCPUs
 	return cpuPercent
 }
 
 func calculateMemPercentUnix(previous types.Stats) float64 {
+	if previous.MemoryStats.Limit == 0 {
+		return 0.0
+	}
 	memPercent := float64(previous.MemoryStats.Usage) / float64(previous.MemoryStats.Limit)
 	return memPercent
 }
@@ -60,11 +68,25 @@ func (r *RuntimeManager) GetContainerResource(containerID string) (float64, floa
 	return cpuPercent, memoryPercent, nil
 }
 
+func (r *RuntimeManager) RestartContainer(containerID string) error {
+	// start the container by contianer name
+	ctx := context.Background()
+	if err := r.DockerClient.Client.ContainerStart(ctx, containerID, container.StartOptions{}); err != nil {
+		return fmt.Errorf("failed to start container %s: %v", containerID, err)
+	}
+	fmt.Printf("Started container with ID %s\n", containerID)
+	return nil
+
+}
 func (r *RuntimeManager) GetContainerState(info *types.ContainerJSON) *types.ContainerState {
+	// or info does not have State field
 	if info == nil {
 		return &types.ContainerState{}
 	}
-
+	if info.State == nil {
+		return nil
+	}
+	// check if state in info exist as file
 	containerState := types.ContainerState{
 		Status:     info.State.Status,
 		StartedAt:  info.State.StartedAt,
@@ -100,22 +122,31 @@ func (r *RuntimeManager) CreatePod(pod *apiobject.PodStore) error {
 	var err error
 
 	if pauseID, err = r.createPauseContainer(images, ctx, pod); err != nil {
+		pod.Status.Phase = "Failed"
 		return fmt.Errorf("failed to create pause container: %v", err)
 	}
 
 	for _, containerSpec := range pod.Spec.Containers {
-		containerID, _ := r.createContainerWithLabel(images, ctx, pauseID, *pod.ToPod(), containerSpec)
-		if containerID != "" {
-
-			info, _ := r.GetInspectInfo(containerID)
-			containerStatus := r.GetContainerState(info)
-			pod.Status.ContainerStatuses = append(pod.Status.ContainerStatuses, *containerStatus)
-			cpuPercent, memoryPercent, _ := r.GetContainerResource(containerID)
-			pod.Status.CpuPercent += cpuPercent
-			pod.Status.MemPercent += memoryPercent
+		containerID, err := r.createContainerWithLabel(images, ctx, pauseID, *pod.ToPod(), containerSpec)
+		if err != nil {
+			pod.Status.Phase = "Failed"
+			return fmt.Errorf("failed to create container %s: %v", containerSpec.Name, err)
 		}
-	}
+		if containerID == "" {
+			pod.Status.Phase = "Failed"
+			return fmt.Errorf("failed to create container %s: %v", containerSpec.Name, err)
+		}
+		info, _ := r.GetInspectInfo(containerID)
+		containerStatus := r.GetContainerState(info)
+		pod.Status.ContainerStatuses = append(pod.Status.ContainerStatuses, *containerStatus)
+		pod.Status.Phase = containerStatus.Status
+		cpuPercent, memoryPercent, _ := r.GetContainerResource(containerID)
+		pod.Status.CpuPercent += cpuPercent
+		pod.Status.MemPercent += memoryPercent
 
+	}
+	// make first letter capital
+	pod.Status.Phase = strings.Title(pod.Status.Phase)
 	return nil
 }
 
@@ -135,15 +166,39 @@ func (r *RuntimeManager) createPauseContainer(images []image.Summary, ctx contex
 	var pauseID string
 	var err error
 
+	portBindingsSet := nat.PortMap{}
+	exposedPortSet := nat.PortSet{}
+
+	for _, container := range pod.Spec.Containers {
+		for _, port := range container.Ports {
+
+			portBindingKey, _ := nat.NewPort("tcp", strconv.Itoa(port.ContainerPort)) // TODO
+			if _, ok := portBindingsSet[portBindingKey]; ok {
+				return "", fmt.Errorf("port conflict")
+			}
+			portBindingsSet[portBindingKey] = []nat.PortBinding{
+				{
+					HostIP:   "127.0.0.1",
+					HostPort: strconv.Itoa(port.ContainerPort),
+				},
+			}
+
+			exposedPortSet[nat.Port(portBindingKey)] = struct{}{}
+		}
+	}
+
 	if !r.DockerClient.ContainerExists(pauseContainerName) {
 		// Create the pause container if not present
 		pauseCntConfig := container.Config{
-			Image:   pauseImage,
-			Volumes: nil,
-			Env:     nil,
-			Labels:  labels,
+			Image:        pauseImage,
+			Volumes:      nil,
+			Env:          nil,
+			Labels:       labels,
+			ExposedPorts: exposedPortSet,
 		}
-		pauseHostConfig := container.HostConfig{IpcMode: "shareable"}
+		pauseHostConfig := container.HostConfig{IpcMode: "shareable",
+			PortBindings: portBindingsSet,
+		}
 		pauseResp, err := r.DockerClient.Client.ContainerCreate(ctx, &pauseCntConfig, &pauseHostConfig, nil, nil, pauseContainerName)
 		if err != nil {
 			log.Printf("Failed to create pause container: %v", err)
@@ -226,12 +281,17 @@ func (r *RuntimeManager) createContainerWithLabel(images []image.Summary, ctx co
 		for _, env := range containerSpec.Env {
 			containerEnv = append(containerEnv, env.Name+"="+env.Value)
 		}
+		// exposedPortSet := nat.PortSet{}
+		// for key := range option.ExposedPorts {
+		// 	exposedPortSet[nat.Port(key)] = struct{}{}
+		// }
 		contConf := container.Config{
 			Image:      containerSpec.Image,
 			Entrypoint: containerSpec.Command,
 			Cmd:        containerSpec.Args,
 			Labels:     labels,
 			Env:        containerEnv,
+			// ExposedPorts: exposedPortSet,
 		}
 		contRes := container.Resources{}
 		if containerSpec.Resources.Limits.Memory != "" && containerSpec.Resources.Limits.Cpu != "" {
@@ -250,7 +310,7 @@ func (r *RuntimeManager) createContainerWithLabel(images []image.Summary, ctx co
 			NetworkMode: container.NetworkMode(pauseRef),
 			Resources:   contRes,
 			VolumesFrom: []string{pauseID},
-			Binds:       contianerBinds,
+			Binds:       contianerBinds, // volume
 		}
 		// Create the application container if not present
 		resp, err := r.DockerClient.Client.ContainerCreate(ctx, &contConf, &hostConf, &network.NetworkingConfig{}, nil, containerName)
@@ -260,15 +320,16 @@ func (r *RuntimeManager) createContainerWithLabel(images []image.Summary, ctx co
 
 		// Start the application container
 		if err := r.DockerClient.Client.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
-			return "", fmt.Errorf("failed to start container %s: %v", resp.ID, err)
+			return resp.ID, fmt.Errorf("failed to start container %s: %v", resp.ID, err)
 		}
 		fmt.Printf("Started container %s with ID %s\n", containerSpec.Image, resp.ID)
+
 		return resp.ID, nil
 	} else {
 		log.Printf("Container %s already exists, skipping creation.", containerName)
+		containerId := GetIDFromContainerName(containerName)
+		return containerId, nil
 	}
-
-	return "", nil
 }
 
 // StopContainer stops a container by its ID

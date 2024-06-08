@@ -1,0 +1,43 @@
+# Use the official Python image from the Docker Hub
+FROM python:3.9-slim
+
+RUN apt-get update && apt-get install -y curl && apt-get clean
+# Set the working directory in the container
+WORKDIR /app
+
+# Install Flask
+RUN pip install Flask
+
+# Copy the Python code directly into the Dockerfile
+RUN echo "from flask import Flask, render_template_string\n\
+import os\n\
+\n\
+app = Flask(__name__)\n\
+\n\
+@app.route('/')\n\
+def home():\n\
+    version = os.getenv('VERSION', '1')\n\
+    html_content = '''\n\
+    <!DOCTYPE html>\n\
+    <html>\n\
+    <head>\n\
+        <title>My Website</title>\n\
+    </head>\n\
+    <body>\n\
+        <h1>Welcome to My website version {{ version }}</h1>\n\
+    </body>\n\
+    </html>\n\
+    '''\n\
+    return render_template_string(html_content, version=version)\n\
+\n\
+if __name__ == '__main__':\n\
+    app.run(host='0.0.0.0', port=80)\n" > /app/app.py
+
+# Make port 5000 available to the world outside this container
+EXPOSE 80
+
+# Define environment variable
+# ENV VERSION 1
+
+# Run the Python app when the container launches
+CMD ["python", "app.py"]
