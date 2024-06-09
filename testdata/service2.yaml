@@ -7,7 +7,7 @@ spec:
     app: simple_service
   ports:
     - protocol: TCP
-      port: 80
-      targetPort: 81
+      port: 5002
+      targetPort: 5001
       nodePort: 81
    

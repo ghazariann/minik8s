@@ -22,11 +22,11 @@ def greet():\n\
     return res\n\
 \n\
 if __name__ == '__main__':\n\
-    app.run(host='0.0.0.0', port=5000)\n""" > /app/app.py
+    app.run(host='0.0.0.0', port=5001)\n""" > /app/app.py
 
 
 # Make port 5000 available to the world outside this container
-EXPOSE 5000
+EXPOSE 5001
 
 # Define environment variable
 # ENV NAME World

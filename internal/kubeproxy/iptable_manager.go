@@ -65,7 +65,7 @@ func (im *IptableManager) CreateService(service apiobject.ServiceStore) error {
 		port := eachports.Port
 		protocol := eachports.Protocol
 		targetPort := eachports.TargetPort
-		err := im.setIPTablesClusterIp(seviceName, clusterIp, port, protocol, targetPort, pod_ip_list, eachports.NodePort)
+		err := im.setIPTablesClusterIp(seviceName, clusterIp, port, protocol, targetPort, pod_ip_list)
 		if err != nil {
 			log.Printf("KUBEPROXY: CreateService: setIPTablesClusterIp failed")
 			return err
@@ -79,18 +79,12 @@ func (im *IptableManager) CreateService(service apiobject.ServiceStore) error {
 	return nil
 }
 
-func (im *IptableManager) setIPTablesClusterIp(serviceName string, clusterIP string, port int, protocol string, targetPort int, podIPList []string, nodePort int) error {
+func (im *IptableManager) setIPTablesClusterIp(serviceName string, clusterIP string, port int, protocol string, targetPort int, podIPList []string) error {
 	log.Printf("KUBEPROXY: setIPTablesClusterIp: " + serviceName + " " + clusterIP + " " + strconv.Itoa(port) + " " + protocol + " " + strconv.Itoa(targetPort))
 
 	if im.ipt == nil {
 		log.Printf("KUBEPROXY: im.iptables is nil")
 		return fmt.Errorf("im.iptables is nil")
-	}
-
-	dnatRule := []string{"-p", protocol, "--dport", strconv.Itoa(nodePort), "-j", "DNAT", "--to-destination", clusterIP + ":" + strconv.Itoa(port)}
-	if err := im.ipt.Append("nat", "PREROUTING", dnatRule...); err != nil {
-		log.Printf("Failed to insert DNAT rule for NodePort: %s", err)
-		return err
 	}
 
 	kube_service := "MINIK8S-SVC-" + GenerateRandomStr(6)
