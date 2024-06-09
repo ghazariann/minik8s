@@ -30,7 +30,7 @@ type KubeProxy struct {
 
 func NewKubeProxy() (*KubeProxy, error) {
 	iptableManager := &IptableManager{
-		stragegy:       "random",
+		stragegy:       "roundrobin",
 		serviceToPod:   make(map[string][]string),
 		serviceToChain: make(map[string][]string),
 		chainToRule:    make(map[string][]string),

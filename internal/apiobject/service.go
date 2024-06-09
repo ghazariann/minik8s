@@ -9,6 +9,7 @@ type ServicePort struct {
 	Port       int    `yaml:"port" json:"port"`
 	TargetPort int    `yaml:"targetPort" json:"targetPort"`
 	Protocol   string `yaml:"protocol" json:"protocol"`
+	NodePort   int    `yaml:"nodePort"`
 }
 
 type ServiceSpec struct {

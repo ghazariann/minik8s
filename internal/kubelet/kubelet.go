@@ -113,21 +113,22 @@ func (k *Kubelet) SyncContainers(knownContainers map[string]string, newContainer
 					log.Printf("Successfully updated pod status for %s to Running", pod.Metadata.Name)
 				}
 			}
-		}
-		if containerID == "" {
-			continue
-		}
-		// check is container is running
-		info, _ := k.RuntimeManager.GetInspectInfo(containerID)
-		if info == nil {
-			log.Printf("Container %s not found", containerID)
-			continue
-		}
-		containerStatus := k.RuntimeManager.GetContainerState(info)
-		if containerStatus.Status != "running" {
-			// Container is not running, restart it
-			log.Printf("Container %s is not running, restarting...", containerID)
-			k.RuntimeManager.RestartContainer(containerID)
+		} else {
+			if containerID == "" {
+				continue
+			}
+			// check is container is running
+			info, _ := k.RuntimeManager.GetInspectInfo(containerID)
+			if info == nil {
+				log.Printf("Container %s not found", containerID)
+				continue
+			}
+			containerStatus := k.RuntimeManager.GetContainerState(info)
+			if containerStatus.Status != "running" {
+				// Container is not running, restart it
+				log.Printf("Container %s is not running, restarting...", containerID)
+				k.RuntimeManager.RestartContainer(containerID)
+			}
 		}
 
 	}

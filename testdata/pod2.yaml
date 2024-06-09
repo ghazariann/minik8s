@@ -1,13 +1,33 @@
-apiVersion: v1 
+apiVersion: v1
 kind: Pod
 metadata:
   labels:
-    app: echo_server
-  name: pod-example2
-  namespace: default
+    app: greet-server
+  name: greet-pod2
 spec:
   containers:
-    - image: nginx-version-two
-      name: nettest2
+    - image: greeting-app
+      name: greet-container2
+      env:
+        - name: NAME
+          value: "World2"
+      ports:
+        - containerPort: 5000
+      volumeMounts:
+        - name: shared-data
+          mountPath: /test
+    - image: welcome-app
+      name: welcome-container2
+      env:
+        - name: VERSION
+          value: "3"
       ports:
         - containerPort: 80
+      volumeMounts:
+        - name: shared-data
+          mountPath: /test
+  volumes:
+    - name: shared-data
+      hostPath:
+        path: /root/shared_dir
+  nodeName: vahag-node

@@ -4,8 +4,13 @@ metadata:
   name: simple-service
 spec:
   selector:
-    app: echo_server
+    app: greet-server
   ports:
     - protocol: TCP
-      port: 27017
+      port: 5000
+      targetPort: 5000
+      nodePort: 5000
+    - protocol: TCP
+      port: 80
       targetPort: 80
+      nodePort: 80

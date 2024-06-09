@@ -219,6 +219,7 @@ func (r *RuntimeManager) createPauseContainer(images []image.Summary, ctx contex
 			log.Printf("Failed to get pause container ID: %v", err)
 			return "", err
 		}
+		return pauseID, nil
 	}
 
 	// [Weave网络] 为pause容器添加网络
