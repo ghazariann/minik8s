@@ -112,7 +112,9 @@ func updateServiceEndpoints(key, value string, allEndpoints []apiobject.Endpoint
 		if err := json.Unmarshal(serviceLR.Value, &serviceStore); err != nil {
 			return err
 		}
-
+		if serviceStore.Spec.Selector[key] != value {
+			continue
+		}
 		serviceStore.Status.Endpoints = allEndpoints
 
 		serviceJson, err := json.Marshal(serviceStore)

@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	PodPending     = "Pending"
-	PodRunning     = "Running"
+	PodPending     = "pending"
+	PodRunning     = "running"
 	PodSucceeded   = "Succeeded"
 	PodFailed      = "Failed"
 	PodUnknown     = "Unknown"
@@ -45,6 +45,7 @@ type PodStatus struct {
 	Phase             string                 `yaml:"phase" json:"phase"`
 	LastUpdated       time.Time              `yaml:"lastUpdateTime" json:"lastUpdateTime"`
 	ContainerStatuses []types.ContainerState `json:"containerStatuses" yaml:"containerStatuses"`
+	ContainerIDs      []string               `json:"containerIDs" yaml:"containerIDs"`
 	CpuPercent        float64                `yaml:"cpuPercent" json:"cpuPercent"`
 	MemPercent        float64                `yaml:"memPercent" json:"memPercent"`
 }

@@ -30,7 +30,7 @@ delete_resource "hpa" "$hpas"
 
 # Clean up Nodes
 nodes=$(./kubectl get nodes | awk 'NR>1 {print $2}')
-delete_resource "node" "$nodes"
+# delete_resource "node" "$nodes"
 
 # Check if resources are cleaned up
 echo "Checking if resources are cleaned up ..."
@@ -45,4 +45,7 @@ echo "HPAs:"
 ./kubectl get hpas
 echo "Nodes:"
 ./kubectl get nodes
+
+# echo creating new nodes
+# ./kubectl create node -f testdata/node2.yaml
 

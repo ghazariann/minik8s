@@ -13,6 +13,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/docker/docker/api/types"
 )
 
 type Kubelet struct {
@@ -110,7 +112,7 @@ func (k *Kubelet) SyncContainers(knownContainers map[string]string, newContainer
 				if err := UpdatePodStatus(&pod); err != nil {
 					log.Printf("Error updating pod status for %s: %v", pod.Metadata.Name, err)
 				} else {
-					log.Printf("Successfully updated pod status for %s to Running", pod.Metadata.Name)
+					// log.Printf("Successfully updated pod status for %s to Running", pod.Metadata.Name)
 					UpdateNodeStatus(&pod, "create")
 				}
 
@@ -185,14 +187,32 @@ func (k *Kubelet) MonitorAndManagePods() error {
 		if pod.Status.Phase != apiobject.PodRunning {
 			log.Printf("Pod %s is pending. Attempting to create containers...", pod.Metadata.Name)
 			k.RuntimeManager.CreatePod(&pod)
-			if err := UpdatePodStatus(&pod); err != nil {
-				log.Printf("Error updating pod status for %s: %v", pod.Metadata.Name, err)
-			} else {
-				log.Printf("Successfully updated pod status to %s", pod.Status.Phase)
-				UpdateNodeStatus(&pod, "create")
-			}
+
+			UpdateNodeStatus(&pod, "create")
+
 		}
+
+		pod.Status.CpuPercent = 0
+		pod.Status.MemPercent = 0
+		pod.Status.ContainerStatuses = []types.ContainerState{}
+		for _, containerID := range pod.Status.ContainerIDs {
+			info, _ := k.RuntimeManager.GetInspectInfo(containerID)
+			containerStatus := k.RuntimeManager.GetContainerState(info)
+			pod.Status.ContainerStatuses = append(pod.Status.ContainerStatuses, *containerStatus)
+			pod.Status.Phase = containerStatus.Status
+			cpuPercent, memoryPercent, _ := k.RuntimeManager.GetContainerResource(containerID)
+			pod.Status.CpuPercent += cpuPercent
+			pod.Status.MemPercent += memoryPercent
+
+		}
+		if err := UpdatePodStatus(&pod); err != nil {
+			log.Printf("Error updating pod status for %s: %v", pod.Metadata.Name, err)
+		}
+
 	}
+
+	// update pod resources
+
 	return nil
 }
 

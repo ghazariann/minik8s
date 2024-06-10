@@ -15,7 +15,7 @@ spec:
         app: echo_server
     spec:
       containers:
-      - name: nettest1
-        image: yuhaohu/cloud-os
+      - name: depl
+        image: myip
         ports:
-        - containerPort: 80
+        - containerPort: 5000

@@ -7,15 +7,15 @@ metadata:
 spec:
   containers:
   - name: autoscaling
-    image: progrium/stress
-    command: ["stress"]
-    args: ["--vm", "1", "--vm-bytes", "15M", "--vm-hang", "1"]
+    image: flask-stress-app
+
     ports:
-        - containerPort: 8090
+    - containerPort: 5000  # Ensure the port matches what your Flask app listens on
+
     resources:
       requests:
-        memory: "10Mi"  # 10M
-        cpu: "10m"
+        memory: "50Mi"  # Adjust based on your application's minimum resource requirements
+        cpu: "50m"      # 50 millicores, which is more appropriate
       limits:
-        memory: "20Mi"   # 10Mi will fail the container to start
-        cpu: "10m"
+        memory: "100Mi"  # Adjust based on your application's maximum resource usage
+        cpu: "100m"      # 100 millicores limit

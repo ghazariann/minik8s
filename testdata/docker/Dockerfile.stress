@@ -1,0 +1,23 @@
+# Use an official Python runtime as a base image
+FROM python:3.9-slim
+
+# Set the working directory in the container to /app
+WORKDIR /app
+
+# Install Flask
+RUN pip install Flask
+
+# Install stress-ng, required for the stress tests
+RUN apt-get update && apt-get install -y stress-ng && rm -rf /var/lib/apt/lists/*
+
+# Copy the current directory contents into the container at /app
+COPY . /app
+
+# Make port 5000 available to the outside world from the container
+EXPOSE 5000
+
+# Define environment variable
+ENV NAME World
+
+# Run app.py when the container launches
+CMD ["python", "load.py"]

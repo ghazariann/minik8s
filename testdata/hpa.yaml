@@ -14,5 +14,5 @@ spec:
     matchLabels: 
       app: hpa
   metrics:
-    cpuPercent: 35
-    memPercent: 30  # 50 will need 2 replicas, but min is 30
+    cpuPercent: 60  # 50 will expand
+    memPercent: 40  # 35 will expand

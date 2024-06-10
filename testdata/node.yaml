@@ -3,7 +3,7 @@ kind: Node
 metadata:
   labels:
     app: simple_service
-  name: vahag-master
+  name: vahag-node
 spec:
-  ip: "192.168.1.18"
+  ip: "192.168.1.5"
 

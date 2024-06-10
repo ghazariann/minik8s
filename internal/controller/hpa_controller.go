@@ -36,12 +36,12 @@ func CalculatedesiredMetricValue(hpa apiobject.HpaStore, cpuUsage float64, memor
 	desiredMetricValue := int(math.Ceil(math.Max(cpuUsage/float64(hpa.Spec.Metrics.CPUPercent),
 		memoryUsage/float64(hpa.Spec.Metrics.MemPercent)) * float64(hpa.Status.CurrentReplicas)))
 	// adjust the expected pod number to be within the min and max replicas
-	if desiredMetricValue < hpa.Spec.MinReplicas {
-		desiredMetricValue = hpa.Spec.MinReplicas
-	}
-	if desiredMetricValue > hpa.Spec.MaxReplicas {
-		desiredMetricValue = hpa.Spec.MaxReplicas
-	}
+	// if desiredMetricValue < hpa.Spec.MinReplicas {
+	// 	desiredMetricValue = hpa.Spec.MinReplicas
+	// }
+	// if desiredMetricValue > hpa.Spec.MaxReplicas {
+	// 	desiredMetricValue = hpa.Spec.MaxReplicas
+	// }
 	return desiredMetricValue
 }
 
@@ -67,7 +67,7 @@ func AddHpaPod(hpaMeta *apiobject.Metadata, pod *apiobject.PodStore) error {
 	url := configs.GetApiServerUrl() + configs.PodsURL
 	newPod := pod
 	newPod.Metadata.Name = pod.Metadata.Name + "-" + RandomStr(5)
-
+	newPod.Spec.NodeName = ""
 	for index := range pod.Spec.Containers {
 		newPod.Spec.Containers[index].Name = pod.Spec.Containers[index].Name + "-" + RandomStr(5)
 	}
@@ -113,42 +113,39 @@ func HpaUpdate(hpa apiobject.HpaStore, pods []apiobject.PodStore) {
 	}
 	hpa.Status.CurrentReplicas = len(filteredPods)
 	// Continuously adjust HPA until desired conditions are met
-	for {
-		avgCPU := CalcAvgCpuPercentage(filteredPods)
-		avgMem := CalcAvgMemPercentage(filteredPods)
+	avgCPU := CalcAvgCpuPercentage(filteredPods)
+	avgMem := CalcAvgMemPercentage(filteredPods)
 
-		desiredMetricValue := CalculatedesiredMetricValue(hpa, avgCPU, avgMem)
-		hpa.Status.CurrentCPUPercent = avgCPU
-		hpa.Status.CurrentMemPercent = avgMem
-		if hpa.Status.CurrentReplicas < hpa.Spec.MinReplicas {
-			AddHpaPod(&hpa.Metadata, &filteredPods[0])
-			hpa.Status.CurrentReplicas++
-		} else if hpa.Status.CurrentReplicas > hpa.Spec.MaxReplicas {
-			ReduceHpaPod(filteredPods[len(filteredPods)-1])
-			hpa.Status.CurrentReplicas--
-			filteredPods = filteredPods[:len(filteredPods)-1]
-		} else if desiredMetricValue > hpa.Status.CurrentReplicas {
-			AddHpaPod(&hpa.Metadata, &filteredPods[0])
-			hpa.Status.CurrentReplicas++
-		} else if desiredMetricValue < hpa.Status.CurrentReplicas {
-			ReduceHpaPod(filteredPods[len(filteredPods)-1])
-			hpa.Status.CurrentReplicas--
-			filteredPods = filteredPods[:len(filteredPods)-1]
-		} else {
-			break // Break the loop if no adjustment is needed
-		}
-
-		// Update status after making changes
-		err := UpdateHpaStatus(hpa)
-		if err != nil {
-			log.Printf("Error updating HPA status: %v", err)
-		}
-
-		// fmt.Printf("Sleeping 15 seconds")
-		// TODO change to hpa defined value
-		dur := time.Duration(time.Duration(hpa.Spec.Interval) * time.Second)
-		time.Sleep(dur)
+	desiredMetricValue := CalculatedesiredMetricValue(hpa, avgCPU, avgMem)
+	log.Printf("Desired metric value: %v", desiredMetricValue)
+	hpa.Status.CurrentCPUPercent = avgCPU
+	hpa.Status.CurrentMemPercent = avgMem
+	if hpa.Status.CurrentReplicas < hpa.Spec.MinReplicas {
+		AddHpaPod(&hpa.Metadata, &filteredPods[0])
+		hpa.Status.CurrentReplicas++
+	} else if hpa.Status.CurrentReplicas > hpa.Spec.MaxReplicas {
+		ReduceHpaPod(filteredPods[len(filteredPods)-1])
+		hpa.Status.CurrentReplicas--
+		// filteredPods = filteredPods[:len(filteredPods)-1]
+	} else if desiredMetricValue > hpa.Status.CurrentReplicas && desiredMetricValue <= hpa.Spec.MaxReplicas {
+		AddHpaPod(&hpa.Metadata, &filteredPods[0])
+		hpa.Status.CurrentReplicas++
+	} else if desiredMetricValue < hpa.Status.CurrentReplicas && desiredMetricValue >= hpa.Spec.MinReplicas {
+		ReduceHpaPod(filteredPods[len(filteredPods)-1])
+		hpa.Status.CurrentReplicas--
+		// filteredPods = filteredPods[:len(filteredPods)-1]
 	}
+
+	// Update status after making changes
+	err := UpdateHpaStatus(hpa)
+	if err != nil {
+		log.Printf("Error updating HPA status: %v", err)
+	}
+
+	// fmt.Printf("Sleeping 15 seconds")
+	// TODO change to hpa defined value
+	dur := time.Duration(time.Duration(hpa.Spec.Interval) * time.Second)
+	time.Sleep(dur)
 }
 
 func HpaRoutine() {
@@ -194,7 +191,7 @@ func HpaRoutine() {
 	previousHpas = currentHpas
 
 	for _, hpa := range currentHpas {
-		go HpaUpdate(hpa, pods)
+		HpaUpdate(hpa, pods)
 	}
 
 }

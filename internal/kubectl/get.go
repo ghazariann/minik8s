@@ -376,7 +376,7 @@ func ListHpas() {
 		log.Fatalf("Error reading response body: %v", err)
 	}
 
-	fmt.Printf("%-10s  %-10s %-10s %-10s %-10s %-10s\n", "Name", "Min Replicas", "Max Replicas", "Current Replicas", "currentCPUPercent", "currentMemPercent")
+	fmt.Printf("%-10s  %-10s %-10s %-10s %-10s %-10s\n", "Name", "Min", "Max", "Current", "cpu(%)", "memorry(%)")
 
 	// Print each container's name and status
 	for _, hpa := range hpas {

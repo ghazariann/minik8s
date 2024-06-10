@@ -181,6 +181,7 @@ func UpdatePodStatus(w http.ResponseWriter, r *http.Request) {
 
 	// Update the pod data ( status in running and has weave IP)
 	podStore.Status = pod.Status
+	// log.Printf("added weave ip %s", pod.Status.PodIP)
 	helpers.UpdateEndPoints(&podStore) // will update service too
 	podStore.Spec.NodeName = pod.Spec.NodeName
 	podStore.Status.LastUpdated = time.Now()

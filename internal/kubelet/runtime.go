@@ -137,6 +137,7 @@ func (r *RuntimeManager) CreatePod(pod *apiobject.PodStore) error {
 			pod.Status.Phase = "Failed"
 			return fmt.Errorf("failed to create container %s: %v", containerSpec.Name, err)
 		}
+
 		info, _ := r.GetInspectInfo(containerID)
 		containerStatus := r.GetContainerState(info)
 		pod.Status.ContainerStatuses = append(pod.Status.ContainerStatuses, *containerStatus)
@@ -144,10 +145,11 @@ func (r *RuntimeManager) CreatePod(pod *apiobject.PodStore) error {
 		cpuPercent, memoryPercent, _ := r.GetContainerResource(containerID)
 		pod.Status.CpuPercent += cpuPercent
 		pod.Status.MemPercent += memoryPercent
+		pod.Status.ContainerIDs = append(pod.Status.ContainerIDs, containerID)
 
 	}
 	// make first letter capital
-	pod.Status.Phase = strings.Title(pod.Status.Phase)
+	// pod.Status.Phase = strings.Title(pod.Status.Phase)
 	return nil
 }
 
