@@ -9,6 +9,7 @@ import (
 	"minik8s/internal/configs"
 	"net/http"
 	"path"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -67,7 +68,8 @@ func AddNode(w http.ResponseWriter, r *http.Request) {
 	node.Metadata.UUID = uuid.New().String()
 
 	nodeStore := node.ToStore()
-
+	nodeStore.Status.Condition = "idle"
+	nodeStore.Status.UpdateTime = time.Now()
 	nodeStoreJson, err := json.Marshal(nodeStore)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

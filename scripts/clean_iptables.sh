@@ -22,23 +22,23 @@ delete_minik8s_chains() {
     done
 
     # Delete MARK-MASQ chain
-    mark_masq_chain=$(echo "$chains" | grep '^MARK-MASQ')
-    echo "Deleting iptables chain $mark_masq_chain ..."
-    sudo iptables -t nat -F $mark_masq_chain
-    sudo iptables -t nat -X $mark_masq_chain
+    # mark_masq_chain=$(echo "$chains" | grep '^MARK-MASQ')
+    # echo "Deleting iptables chain $mark_masq_chain ..."
+    # sudo iptables -t nat -F $mark_masq_chain
+    # sudo iptables -t nat -X $mark_masq_chain
 
-    # Delete POSTROUTING chain
-    postrouting_chain=$(echo "$chains" | grep '^POSTROUTING')
-    echo "Deleting iptables chain $postrouting_chain ..."
-    sudo iptables -t nat -F $postrouting_chain
-    sudo iptables -t nat -X $postrouting_chain
+    # # Delete POSTROUTING chain
+    # postrouting_chain=$(echo "$chains" | grep '^POSTROUTING')
+    # echo "Deleting iptables chain $postrouting_chain ..."
+    # sudo iptables -t nat -F $postrouting_chain
+    # sudo iptables -t nat -X $postrouting_chain
 
-    # Delete SERVICES chain
-    services_chain=$(echo "$chains" | grep '^SERVICES')
-    echo "Deleting iptables chain $services_chain ..."
-    sudo iptables -t nat -F $services_chain
-    sudo iptables -t nat -X $services_chain
-    sudo systemctl restart docker
+    # # Delete SERVICES chain
+    # services_chain=$(echo "$chains" | grep '^SERVICES')
+    # echo "Deleting iptables chain $services_chain ..."
+    # sudo iptables -t nat -F $services_chain
+    # sudo iptables -t nat -X $services_chain
+    # sudo systemctl restart docker
 
 }
 

@@ -111,7 +111,9 @@ func (k *Kubelet) SyncContainers(knownContainers map[string]string, newContainer
 					log.Printf("Error updating pod status for %s: %v", pod.Metadata.Name, err)
 				} else {
 					log.Printf("Successfully updated pod status for %s to Running", pod.Metadata.Name)
+					UpdateNodeStatus(&pod, "create")
 				}
+
 			}
 		} else {
 			if containerID == "" {
@@ -187,6 +189,7 @@ func (k *Kubelet) MonitorAndManagePods() error {
 				log.Printf("Error updating pod status for %s: %v", pod.Metadata.Name, err)
 			} else {
 				log.Printf("Successfully updated pod status to %s", pod.Status.Phase)
+				UpdateNodeStatus(&pod, "create")
 			}
 		}
 	}
@@ -196,7 +199,10 @@ func (k *Kubelet) MonitorAndManagePods() error {
 // CleanUpPod stops and removes all containers associated with the pod
 func (k *Kubelet) CleanUpPod(podName string) error {
 	log.Printf("Cleaning up resources for pod %s", podName)
-	return k.RuntimeManager.DeletePod(podName)
+	pod := k.knownPods[podName]
+	k.RuntimeManager.DeletePod(podName)
+	UpdateNodeStatus(&pod, "delete")
+	return nil
 }
 
 // UpdatePodStatus sends a request to the API server to update the pod status
@@ -218,6 +224,49 @@ func UpdatePodStatus(pod *apiobject.PodStore) error {
 		return fmt.Errorf("failed to update pod status: %s", string(body))
 	}
 
+	return nil
+}
+func UpdateNodeStatus(pod *apiobject.PodStore, action string) error {
+	GetUrl := fmt.Sprintf(configs.GetApiServerUrl()+configs.NodeUrl+"?name=%s", pod.Spec.NodeName)
+
+	resp, err := http.Get(GetUrl)
+	if err != nil {
+		return fmt.Errorf("failed to get node status: %v", err)
+	}
+	defer resp.Body.Close()
+
+	node := apiobject.NodeStore{}
+	if err := json.NewDecoder(resp.Body).Decode(&node); err != nil {
+		return fmt.Errorf("failed to decode node status: %v", err)
+	}
+	node.Status.UpdateTime = time.Now()
+	if action == "delete" {
+		node.Status.NumPods -= 1
+		node.Status.MemPercent -= pod.Status.MemPercent
+		node.Status.CpuPercent -= pod.Status.CpuPercent
+		if node.Status.NumPods == 0 {
+			node.Status.Condition = "idle"
+		}
+	} else if action == "create" {
+
+		node.Status.NumPods += 1
+		node.Status.MemPercent += pod.Status.MemPercent
+		node.Status.CpuPercent += pod.Status.CpuPercent
+		node.Status.Condition = "running"
+	} else {
+	}
+	// else {
+	// node.Status.MemPercent += pod.Status.MemPercent
+	// node.Status.CpuPercent += pod.Status.CpuPercent
+	// }
+	Posturl := fmt.Sprintf(configs.GetApiServerUrl()+configs.NodeUrl+"?name=%s", pod.Spec.NodeName)
+
+	jsonData, _ := json.Marshal(node)
+	log.Printf("Node status: %s", jsonData)
+	_, err = http.Post(Posturl, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("failed to marshal node status: %v", err)
+	}
 	return nil
 }
 

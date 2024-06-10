@@ -262,7 +262,11 @@ func (p *KubeProxy) ServiceRoutine() error {
 		p.knownServices[service.Metadata.Name] = service
 		if service.Status.Phase == "pending" {
 			fmt.Println("create service", service.Metadata.Name)
-			p.iptableManager.CreateService(service)
+			err := p.iptableManager.CreateService(service)
+			if err != nil {
+				log.Printf("KUBEPROXY: ServiceRoutine: CreateService failed: %v", err)
+				continue
+			}
 			service.Status.Phase = "running"
 			UpdateServiceStatus(service)
 		}

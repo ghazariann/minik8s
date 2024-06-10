@@ -44,7 +44,6 @@ func RoundRobin(nodes []apiobject.NodeStore) string {
 	}
 	idx := globCount % len(nodes)
 	globCount++
-	fmt.Println("Schedule to node: ", nodes[idx].Metadata.Name)
 	return nodes[idx].Metadata.Name
 }
 func Random(nodes []apiobject.NodeStore) string {
@@ -82,13 +81,13 @@ func GetAllNodes() ([]apiobject.NodeStore, error) {
 	}
 	return nodes, nil
 }
-func SchedulePod(podStore *apiobject.PodStore) error {
+func SchedulePod(podStore *apiobject.PodStore) (string, error) {
 
 	nodes, err := GetAllNodes()
 
 	if err != nil {
 		log.Fatal("NO NODES AVAILABLE")
-		return err
+		return "", err
 	}
 
 	var scheduledNode string
@@ -106,11 +105,11 @@ func SchedulePod(podStore *apiobject.PodStore) error {
 	}
 
 	if scheduledNode == "" {
-		return errors.New("no node available")
+		return "", errors.New("no node available")
 	}
 
 	podStore.Spec.NodeName = scheduledNode
 	// update
 	// UpdatePodStatus(podStore)
-	return nil
+	return scheduledNode, nil
 }

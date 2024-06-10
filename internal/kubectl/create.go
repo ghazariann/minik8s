@@ -65,6 +65,15 @@ var CmdCreateDns = &cobra.Command{
 	},
 }
 
+var CmdCreateNode = &cobra.Command{
+	Use:   "node -f [filename]",
+	Short: "Create a node",
+	Run: func(cmd *cobra.Command, args []string) {
+		filename, _ := cmd.Flags().GetString("filename")
+		CreateNode(filename)
+	},
+}
+
 func CreatePodFromYAML(filename string) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
@@ -205,6 +214,33 @@ func CreateDns(filename string) {
 	}
 	fmt.Println(string(body))
 }
+
+func CreateNode(filename string) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		log.Fatalf("Error reading YAML file: %v", err)
+	}
+	var node apiobject.Node
+	if err := yaml.Unmarshal(data, &node); err != nil {
+		log.Fatalf("Error parsing YAML: %v", err)
+	}
+	jsonData, err := json.Marshal(node)
+	if err != nil {
+
+		log.Fatalf("Error converting node data to JSON: %v", err)
+	}
+	url := configs.GetApiServerUrl() + configs.NodesUrl
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		log.Fatalf("Error sending request: %v", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Error reading response body: %v", err)
+	}
+	fmt.Println(string(body))
+}
 func init() {
 	CmdCreateDeployment.Flags().StringVarP(new(string), "filename", "f", "", "Path to the YAML file")
 	CmdCreateDeployment.MarkFlagRequired("filename")
@@ -220,10 +256,14 @@ func init() {
 	CmdCreateDns.Flags().StringVarP(new(string), "filename", "f", "", "Path to the YAML file")
 	CmdCreateDns.MarkFlagRequired("filename")
 
+	CmdCreateNode.Flags().StringVarP(new(string), "filename", "f", "", "Path to the YAML file")
+	CmdCreateNode.MarkFlagRequired("filename")
+
 	CreateCmd.AddCommand(CmdCreatePodFromYAML)
 	CreateCmd.AddCommand(CmdCreateDeployment)
 	CreateCmd.AddCommand(CmdCreateServiceFromYAML)
 	CreateCmd.AddCommand(CmdCreateHpa)
 	CreateCmd.AddCommand(CmdCreateDns)
+	CreateCmd.AddCommand(CmdCreateNode)
 
 }

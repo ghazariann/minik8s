@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"minik8s/internal/apiobject"
 	"minik8s/internal/apiserver/etcdclient"
 	"minik8s/internal/apiserver/helpers"
@@ -75,7 +76,14 @@ func AddPod(w http.ResponseWriter, r *http.Request) {
 	podStore.Status.Phase = apiobject.PodPending
 	podStore.Status.LastUpdated = time.Now()
 	// TODO add namespace + name
-	scheduler.SchedulePod(podStore)
+	shceduledNode, err := scheduler.SchedulePod(podStore)
+
+	if err != nil {
+		log.Fatal("Failed to schedule pod")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Println("Schedule to node: ", shceduledNode)
 	podStoreJson, err := json.Marshal(podStore)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

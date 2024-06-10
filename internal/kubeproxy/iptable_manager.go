@@ -58,6 +58,10 @@ func (im *IptableManager) CreateService(service apiobject.ServiceStore) error {
 	var pod_ip_list []string
 	for _, endpoint := range service.Status.Endpoints {
 		pod_ip_list = append(pod_ip_list, endpoint.IP)
+		if endpoint.IP == "" {
+			log.Printf("KUBEPROXY: CreateService: endpoint IP is empty")
+			return fmt.Errorf("endpoint IP is empty")
+		}
 	}
 
 	for _, eachports := range ports {
@@ -141,7 +145,7 @@ func (im *IptableManager) setIPTablesClusterIp(serviceName string, clusterIP str
 				}
 			} else {
 				if err := im.ipt.Insert("nat", kube_service, 1, "-j", kube_endpoint,
-					"-m", "statistic", "--mode", "nth", "--every", strconv.Itoa(podNum-i)); err != nil {
+					"-m", "statistic", "--mode", "nth", "--every", strconv.Itoa(podNum-i), "--packet", "1"); err != nil {
 					log.Printf("KUBEPROXY: Failed to create kube_service chain: " + err.Error())
 					return err
 				}
