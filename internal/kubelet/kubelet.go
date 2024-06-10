@@ -262,7 +262,7 @@ func UpdateNodeStatus(pod *apiobject.PodStore, action string) error {
 	Posturl := fmt.Sprintf(configs.GetApiServerUrl()+configs.NodeUrl+"?name=%s", pod.Spec.NodeName)
 
 	jsonData, _ := json.Marshal(node)
-	log.Printf("Node status: %s", jsonData)
+	// log.Printf("Node status: %s", jsonData)
 	_, err = http.Post(Posturl, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to marshal node status: %v", err)

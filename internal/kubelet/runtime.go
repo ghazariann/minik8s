@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"minik8s/internal/apiobject" // Ensure correct import path
+	"net"
 	"strconv"
 	"strings"
 
@@ -150,6 +151,18 @@ func (r *RuntimeManager) CreatePod(pod *apiobject.PodStore) error {
 	return nil
 }
 
+func GetNewPort() (string, error) {
+
+	portListener, _ := net.Listen("tcp", "localhost:0")
+
+	defer portListener.Close()
+	addr := portListener.Addr().String()
+
+	_, port, _ := net.SplitHostPort(addr)
+
+	return port, nil
+}
+
 // creae pause container
 func (r *RuntimeManager) createPauseContainer(images []image.Summary, ctx context.Context, pod *apiobject.PodStore) (string, error) {
 	pauseImage := "registry.aliyuncs.com/google_containers/pause:3.6"
@@ -176,10 +189,11 @@ func (r *RuntimeManager) createPauseContainer(images []image.Summary, ctx contex
 			if _, ok := portBindingsSet[portBindingKey]; ok {
 				return "", fmt.Errorf("port conflict")
 			}
+			hostPort, _ := GetNewPort()
 			portBindingsSet[portBindingKey] = []nat.PortBinding{
 				{
 					HostIP:   "127.0.0.1",
-					HostPort: strconv.Itoa(port.ContainerPort),
+					HostPort: hostPort,
 				},
 			}
 
