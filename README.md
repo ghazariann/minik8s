@@ -45,6 +45,15 @@ The following components run on WorkerNode
 ### Project Management
 
 **Project branches**：Development is carried out in multiple branches. Each functional point corresponds to a Feature branch, and all pushes will be tested by go test.
+![alt text](image.png)
+
+
+**Testing**：We have implemented test_*.sh files to test each components creation and deletion. You can find all tests in `./scripts/test` and run `./scripts/test/test_all.sh`
+
+
+Simple test file looks like this.
+
+And here is results
 
 **CI/CD**：We added our own Runner through Git Action and wrote a test script for the project to implement CI/CD. Ensure that the environment is fully initialized before each run.
 
@@ -53,7 +62,6 @@ The following components run on WorkerNode
 3. After the unit test passes, the executa file is build and published to the bin directory of the machine
 4. After the above 2 and 3 are passed, for the case of merging into Master, docker-related images will be built and pushed to dockerhub.
 
-**Testing**：: The project files and test files were put in the same folder. You can run the entire project tests using command `go test ./...`.
 
 ## Components
 

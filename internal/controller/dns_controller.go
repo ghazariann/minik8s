@@ -163,8 +163,8 @@ func (dc *dnsController) UpdateServiceIp() error {
 func (dc *dnsController) Run() {
 	// sleep for a while so apiserver will start
 	time.Sleep(2 * time.Second)
-	dc.CreateNginxService()
-	dc.GetNginxServiceIP()
-	dc.UpdateServiceIp()
+	// dc.CreateNginxService()
+	// dc.GetNginxServiceIP()
+	// dc.UpdateServiceIp()
 	// check periodically
 }
