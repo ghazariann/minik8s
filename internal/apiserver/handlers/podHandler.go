@@ -142,6 +142,61 @@ func GetPod(w http.ResponseWriter, r *http.Request) {
 	w.Write(podStoreJson)
 	// fmt.Fprintf(w, "Pod fetched: %s", podName)
 }
+func UpdatePodStoreStats(w http.ResponseWriter, r *http.Request) {
+	// same UpdatePodStatus withou service update
+	// Extract pod name from the query parameters
+	podName := r.URL.Query().Get("name")
+	if podName == "" {
+		http.Error(w, "Pod name is required", http.StatusBadRequest)
+		return
+	}
+
+	// Decode the request body into a Pod object
+	var pod apiobject.PodStore
+	if err := json.NewDecoder(r.Body).Decode(&pod); err != nil {
+		http.Error(w, "Failed to decode request body: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Retrieve the existing pod data from etcd
+	resp, err := etcdclient.Cli.Get(context.Background(), configs.ETCDPodPath+podName)
+	if err != nil {
+		http.Error(w, "Failed to fetch pod: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Check if the pod was found
+	if len(resp.Kvs) == 0 {
+		http.Error(w, "Pod not found", http.StatusNotFound)
+		return
+	}
+
+	// Unmarshal the existing pod data
+	var podStore apiobject.PodStore
+	if err := json.Unmarshal(resp.Kvs[0].Value, &podStore); err != nil {
+		http.Error(w, "Error decoding pod data: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Update the pod data
+	podStore.Status = pod.Status
+	podStore.Status.LastUpdated = time.Now()
+	// Marshal the updated pod data
+	podStoreJson, err := json.Marshal(podStore)
+	if err != nil {
+		http.Error(w, "Error encoding pod data: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Update the pod in etcd
+	if err := etcdclient.PutKey(configs.ETCDPodPath+podName, string(podStoreJson)); err != nil {
+		http.Error(w, "Failed to update pod: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Respond with confirmation
+	fmt.Fprintf(w, "PodStore updated: %s", podName)
+}
 func UpdatePodStatus(w http.ResponseWriter, r *http.Request) {
 	// Ensure the method is PUT
 

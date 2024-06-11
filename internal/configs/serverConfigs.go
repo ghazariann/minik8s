@@ -23,9 +23,10 @@ const (
 	NodeUrl  = "/node"
 	NodesUrl = "/nodes"
 
-	PodUrl      = "/pod"
-	PodStoreUrl = "/podStore"
-	PodsURL     = "/pods"
+	PodUrl           = "/pod"
+	PodStoreUrl      = "/podStore"
+	PodStoreStatsUrl = "/podStoreStats"
+	PodsURL          = "/pods"
 
 	ServiceUrl      = "/service"
 	ServicesUrl     = "/services"

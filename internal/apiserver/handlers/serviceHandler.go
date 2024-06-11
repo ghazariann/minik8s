@@ -195,6 +195,7 @@ func UpdateServiceStatus(w http.ResponseWriter, r *http.Request) error {
 	if err := etcdclient.PutKey(configs.ETCDServicePath+service.Metadata.Name, string(serviceStoreJSON)); err != nil {
 		return err
 	}
+
 	return nil
 }
 

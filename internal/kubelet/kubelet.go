@@ -187,9 +187,7 @@ func (k *Kubelet) MonitorAndManagePods() error {
 		if pod.Status.Phase != apiobject.PodRunning {
 			log.Printf("Pod %s is pending. Attempting to create containers...", pod.Metadata.Name)
 			k.RuntimeManager.CreatePod(&pod)
-
 			UpdateNodeStatus(&pod, "create")
-
 		}
 
 		pod.Status.CpuPercent = 0
@@ -205,7 +203,7 @@ func (k *Kubelet) MonitorAndManagePods() error {
 			pod.Status.MemPercent += memoryPercent
 
 		}
-		if err := UpdatePodStatus(&pod); err != nil {
+		if err := UpdatePodStats(&pod); err != nil {
 			log.Printf("Error updating pod status for %s: %v", pod.Metadata.Name, err)
 		}
 
@@ -228,6 +226,26 @@ func (k *Kubelet) CleanUpPod(podName string) error {
 // UpdatePodStatus sends a request to the API server to update the pod status
 func UpdatePodStatus(pod *apiobject.PodStore) error {
 	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.PodStoreUrl+"?name=%s", pod.Metadata.Name)
+	podJson, err := json.Marshal(pod)
+	if err != nil {
+		return fmt.Errorf("failed to marshal pod status: %v", err)
+	}
+
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(podJson))
+	if err != nil {
+		return fmt.Errorf("failed to send update request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed to update pod status: %s", string(body))
+	}
+
+	return nil
+}
+func UpdatePodStats(pod *apiobject.PodStore) error {
+	url := fmt.Sprintf(configs.GetApiServerUrl()+configs.PodStoreStatsUrl+"?name=%s", pod.Metadata.Name)
 	podJson, err := json.Marshal(pod)
 	if err != nil {
 		return fmt.Errorf("failed to marshal pod status: %v", err)

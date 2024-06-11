@@ -47,6 +47,15 @@ func StartServer() {
 			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
 		}
 	})
+	// PodStoreStatsUrl
+	http.HandleFunc(configs.PodStoreStatsUrl, func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "POST":
+			handlers.UpdatePodStoreStats(w, r)
+		default:
+			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
+		}
+	})
 
 	http.HandleFunc(configs.ServiceUrl, func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -72,6 +81,7 @@ func StartServer() {
 		switch r.Method {
 		case "POST":
 			handlers.UpdateServiceStatus(w, r)
+		default:
 			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
 		}
 	})
