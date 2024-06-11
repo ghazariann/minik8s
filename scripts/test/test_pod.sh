@@ -14,20 +14,24 @@ else
     exit 1
 fi
 
-# Wait for 10 seconds to let the pod start
-sleep 15
+# Function to check pod status
+check_pod_status() {
+    for attempt in {1..5}; do
+        echo "Checking pod status, attempt $attempt of 5..."
+        output_pods=$(./kubectl get pods)
+        if [[ "$output_pods" == *"greet-pod"* && "$output_pods" == *"running"* ]]; then
+            echo "Pod is running."
+            return 0
+        fi
+        sleep 5
+    done
+    echo "Pod status check failed or output did not match after multiple attempts."
+    echo "Last output: $output_pods"
+    return 1
+}
 
-# Check pod status using kubectl
-output_pods=$(./kubectl get pods)
-expected_output_pods="greet-pod                      running    10.32.0.1  26s                  vahag-master"
-
-# Check if the pod status output is correct
-if [[ "$output_pods" == *"$expected_output_pods"* ]]; then
-    echo "Pod status output matched expected output."
-else
-    echo "Pod status check failed or output did not match."
-    echo "Expected to contain: $expected_output_pods"
-    echo "Got: $output_pods"
+# Check pod status with retries
+if ! check_pod_status; then
     exit 1
 fi
 
@@ -44,10 +48,7 @@ for container in "${expected_containers[@]}"; do
         exit 1
     fi
 done
+# ./kubectl delete pod greet-pod
+# sleep 5
 
-echo "Delete pod"
-./kubectl delete pod greet-pod
-sleep 5
 echo "All checks passed!"
-
-

@@ -1,53 +1,44 @@
 #!/bin/bash
 
-# Create the pod using kubectl and capture the output
-output_create=$(./kubectl create pod -f testdata/pod.yaml)
-expected_output_create="Pod created: greet-pod"
+# Create the DNS resource using kubectl and capture the output
+output_create=$(./kubectl create dns -f testdata/dns.yaml)
+expected_output_create="Dns created: test-dns"
 
-# Check if the pod was created successfully
+# Check if the DNS was created successfully
 if [[ "$output_create" == "$expected_output_create" ]]; then
-    echo "Pod creation output matched expected output."
+    echo "DNS creation output matched expected output."
 else
-    echo "Pod creation failed or output did not match."
+    echo "DNS creation failed or output did not match."
     echo "Expected: $expected_output_create"
     echo "Got: $output_create"
     exit 1
 fi
 
-# Wait for 10 seconds to let the pod start
-sleep 15
+# Test the DNS by curling the domain
+output_curl=$(curl -s vahag.com)
+expected_content="<title>My Website</title>"
 
-# Check pod status using kubectl
-output_pods=$(./kubectl get pods)
-expected_output_pods="greet-pod                      running    10.32.0.1  26s                  vahag-master"
-
-# Check if the pod status output is correct
-if [[ "$output_pods" == *"$expected_output_pods"* ]]; then
-    echo "Pod status output matched expected output."
+# Check if the curl response is as expected
+if [[ "$output_curl" == *"$expected_content"* ]]; then
+    echo "DNS is correctly resolving and the web page content is as expected."
 else
-    echo "Pod status check failed or output did not match."
-    echo "Expected to contain: $expected_output_pods"
-    echo "Got: $output_pods"
+    echo "Failed to retrieve correct web page content."
+    echo "Expected to contain: $expected_content"
+    echo "Got: $output_curl"
     exit 1
 fi
 
-# Check the running containers with docker ps
-output_docker_ps=$(docker ps --format "{{.Names}}")
-expected_containers=("greet-pod_dir-creator" "greet-pod_welcome-container" "greet-pod_greet-container" "greet-pod_pause")
+# Clean up the DNS resource after the test
+cleanup_output=$(./kubectl delete dns test-dns)
+expected_cleanup_output="Dns deleted: test-dns"
 
-# Validate all expected containers are running
-for container in "${expected_containers[@]}"; do
-    if [[ "$output_docker_ps" == *"$container"* ]]; then
-        echo "$container is running."
-    else
-        echo "Container $container is not running."
-        exit 1
-    fi
-done
+if [[ "$cleanup_output" == "$expected_cleanup_output" ]]; then
+    echo "DNS cleanup was successful."
+else
+    echo "Failed to clean up the DNS resource."
+    echo "Expected: $expected_cleanup_output"
+    echo "Got: $cleanup_output"
+    exit 1
+fi
 
-echo "Delete pod"
-./kubectl delete pod greet-pod
-sleep 5
-echo "All checks passed!"
-
-
+echo "All DNS checks passed!"

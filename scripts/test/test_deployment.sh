@@ -1,53 +1,40 @@
 #!/bin/bash
 
-# Create the pod using kubectl and capture the output
-output_create=$(./kubectl create pod -f testdata/pod.yaml)
-expected_output_create="Pod created: greet-pod"
+# Create the deployment using kubectl and capture the output
+output_create=$(./kubectl create deployment -f testdata/deployment.yaml)
+expected_output_create="Deployment created: simple-deployment"
 
-# Check if the pod was created successfully
+# Check if the deployment was created successfully
 if [[ "$output_create" == "$expected_output_create" ]]; then
-    echo "Pod creation output matched expected output."
+    echo "Deployment creation output matched expected output."
 else
-    echo "Pod creation failed or output did not match."
+    echo "Deployment creation failed or output did not match."
     echo "Expected: $expected_output_create"
     echo "Got: $output_create"
     exit 1
 fi
 
-# Wait for 10 seconds to let the pod start
-sleep 15
+# Function to check deployment status
+check_deployment_status() {
+    for attempt in {1..5}; do
+        echo "Checking deployment status, attempt $attempt of 5..."
+        output_deployments=$(./kubectl get deployments)
+        ready_replicas=$(echo "$output_deployments" | grep "simple-deployment" | awk '{print $3}')
+        if [ "$ready_replicas" -gt 0 ]; then
+            echo "Deployment has at least one ready replica."
+            return 0
+        fi
+        sleep 5
+    done
+    echo "Deployment status check failed or no replicas are ready after multiple attempts."
+    echo "Last output: $output_deployments"
+    return 1
+}
 
-# Check pod status using kubectl
-output_pods=$(./kubectl get pods)
-expected_output_pods="greet-pod                      running    10.32.0.1  26s                  vahag-master"
-
-# Check if the pod status output is correct
-if [[ "$output_pods" == *"$expected_output_pods"* ]]; then
-    echo "Pod status output matched expected output."
-else
-    echo "Pod status check failed or output did not match."
-    echo "Expected to contain: $expected_output_pods"
-    echo "Got: $output_pods"
+# Check deployment status with retries
+if ! check_deployment_status; then
     exit 1
 fi
-
-# Check the running containers with docker ps
-output_docker_ps=$(docker ps --format "{{.Names}}")
-expected_containers=("greet-pod_dir-creator" "greet-pod_welcome-container" "greet-pod_greet-container" "greet-pod_pause")
-
-# Validate all expected containers are running
-for container in "${expected_containers[@]}"; do
-    if [[ "$output_docker_ps" == *"$container"* ]]; then
-        echo "$container is running."
-    else
-        echo "Container $container is not running."
-        exit 1
-    fi
-done
-
-echo "Delete pod"
-./kubectl delete pod greet-pod
+./kubectl delete deployment simple-deployment
 sleep 5
-echo "All checks passed!"
-
-
+echo "All deployment checks passed!"
