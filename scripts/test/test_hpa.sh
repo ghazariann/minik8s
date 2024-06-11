@@ -36,5 +36,5 @@ if ! check_hpa_status; then
     exit 1
 fi
 ./kubectl delete hpa test-hpa
-
+sleep 5
 echo "All HPA checks passed!"

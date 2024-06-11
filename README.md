@@ -44,14 +44,18 @@ The following components run on WorkerNode
 
 ### Project Management
 
-**Project branches**：Development is carried out in multiple branches. Each functional point corresponds to a Feature branch, and all pushes will be tested by go test.
+**Project branches**：Development is carried out in multiple branches. Each functional point corresponds to a Feature branch wich later is tested and merged with main.
+
 ![alt text](./docs/asset/image-5.png)
 
 
-**Testing**：We have implemented test_*.sh files to test each components creation and deletion. You can find all tests in `./scripts/test` and run `./scripts/test/test_x.sh` for one test and `./scripts/test/test_all.sh` for all.
+**Testing**
+We have implemented test_*.sh files to test each components creation and deletion. You can find all tests in `./scripts/test` and run `./scripts/test/test_x.sh` for one test and `./scripts/test/test_all.sh` for all.
+
 ![alt text](./docs/asset/image-6.png)
 
 Simple test file looks like this.
+
 ![alt text](./docs/asset/image-8.png)
 
 
