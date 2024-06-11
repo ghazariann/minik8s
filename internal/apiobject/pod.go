@@ -32,6 +32,13 @@ type Pod struct {
 	Spec      PodSpec `yaml:"spec" json:"spec"`
 }
 
+// PodStore represents a stored Pod with status.
+type PodStore struct {
+	APIObject `yaml:",inline" json:",inline"`
+	Spec      PodSpec   `yaml:"spec" json:"spec"`
+	Status    PodStatus `yaml:"status" json:"status"`
+}
+
 // PodSpec defines the specification of a Pod.
 type PodSpec struct {
 	Containers []Container `yaml:"containers" json:"containers"`
@@ -48,13 +55,6 @@ type PodStatus struct {
 	ContainerIDs      []string               `json:"containerIDs" yaml:"containerIDs"`
 	CpuPercent        float64                `yaml:"cpuPercent" json:"cpuPercent"`
 	MemPercent        float64                `yaml:"memPercent" json:"memPercent"`
-}
-
-// PodStore represents a stored Pod with status.
-type PodStore struct {
-	APIObject `yaml:",inline" json:",inline"`
-	Spec      PodSpec   `yaml:"spec" json:"spec"`
-	Status    PodStatus `yaml:"status" json:"status"`
 }
 
 type Port struct {

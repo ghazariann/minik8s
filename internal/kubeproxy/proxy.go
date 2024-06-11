@@ -246,13 +246,9 @@ func (p *KubeProxy) DnsRoutine() error {
 	for _, dns := range dnss {
 		if dns.Status.Phase == "pending" {
 			fmt.Println("create dns", dns.Metadata.Name)
-			// get all services ips in list fro dns.Spec.Paths
 			serviceIps, _ := GetAllServiceIps()
 			appendHostEntries(serviceIps, dns.Spec.Hostname)
 			p.dnsManager.AddDns(dns)
-			// add to /etc/hosts
-			// ipList := getAllIps(dns.Spec.Paths)
-			// appendHostEntry(ipList, dns.Spec.Hostname)
 			dns.Status.Phase = "running"
 			UpdateDnsStatus(dns)
 			p.knowsDns[dns.Metadata.Name] = dns
