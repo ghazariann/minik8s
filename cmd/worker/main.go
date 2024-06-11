@@ -10,6 +10,7 @@ func main() {
 	var wg sync.WaitGroup
 
 	kubeletInstance, _ := kubelet.NewKubelet()
+	kubeletInstance.LoadFromJSON()
 	wg.Add(1)
 	go func() {
 		defer wg.Done()

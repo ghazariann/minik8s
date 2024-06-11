@@ -17,6 +17,9 @@ import (
 	"github.com/docker/docker/api/types"
 )
 
+var containerJSON = "/root/minik8s/persist/known_containers.json"
+var podsJSON = "/root/minik8s/persist/known_pods.json"
+
 type Kubelet struct {
 	Name            string
 	RuntimeManager  *RuntimeManager
@@ -66,13 +69,13 @@ func NewKubelet() (*Kubelet, error) {
 	runtimeManager := NewRuntimeManager(dockerClient)
 	hostname, _ := os.Hostname()
 	RegisterNode(hostname)
-
-	return &Kubelet{
+	kbl := Kubelet{
 		RuntimeManager:  runtimeManager,
 		knownPods:       map[string]apiobject.PodStore{},
 		Name:            hostname,
 		knownContainers: map[string]string{},
-	}, nil
+	}
+	return &kbl, nil
 }
 func (k *Kubelet) GetAllPods() ([]apiobject.PodStore, error) {
 	url := configs.GetApiServerUrl() + configs.PodsURL
@@ -115,7 +118,7 @@ func (k *Kubelet) SyncContainers(knownContainers map[string]string, newContainer
 					// log.Printf("Successfully updated pod status for %s to Running", pod.Metadata.Name)
 					UpdateNodeStatus(&pod, "create")
 				}
-
+				break
 			}
 		} else {
 			if containerID == "" {
@@ -146,11 +149,16 @@ func filterPodsByNodeName(pods []apiobject.PodStore, nodeName string) []apiobjec
 	}
 	return filteredPods
 }
-func (k *Kubelet) MonitorAndManagePods() error {
 
+//	func isContainerJSONEmpty(c types.ContainerJSON) bool {
+//		var zero types.ContainerJSON // Zero value of types.ContainerJSON
+//		return c == zero             // Compare with zero value
+//	}
+func (k *Kubelet) MonitorAndManagePods() error {
 	// Fetch all pods
 	containers, _ := k.RuntimeManager.DockerClient.ListPodContainers()
 	k.SyncContainers(k.knownContainers, containers, k.knownPods)
+	k.SaveToJSON()
 	k.knownContainers = containers
 
 	pods, err := k.GetAllPods()
@@ -187,6 +195,7 @@ func (k *Kubelet) MonitorAndManagePods() error {
 		if pod.Status.Phase != apiobject.PodRunning {
 			log.Printf("Pod %s is pending. Attempting to create containers...", pod.Metadata.Name)
 			k.RuntimeManager.CreatePod(&pod)
+			UpdatePodStatus(&pod)
 			UpdateNodeStatus(&pod, "create")
 		}
 
@@ -195,6 +204,10 @@ func (k *Kubelet) MonitorAndManagePods() error {
 		pod.Status.ContainerStatuses = []types.ContainerState{}
 		for _, containerID := range pod.Status.ContainerIDs {
 			info, _ := k.RuntimeManager.GetInspectInfo(containerID)
+			// var empty types.ContainerJSON
+			if info.Mounts == nil {
+				continue
+			}
 			containerStatus := k.RuntimeManager.GetContainerState(info)
 			pod.Status.ContainerStatuses = append(pod.Status.ContainerStatuses, *containerStatus)
 			pod.Status.Phase = containerStatus.Status
@@ -381,4 +394,51 @@ func (k *Kubelet) WatchPods() {
 			continue
 		}
 	}
+}
+
+func (k *Kubelet) LoadFromJSON() error {
+	data, err := os.ReadFile(containerJSON)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(data, &k.knownContainers); err != nil {
+		return err
+	}
+
+	log.Println("Known containers loaded from JSON file.")
+	data, err = os.ReadFile(podsJSON)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(data, &k.knownPods); err != nil {
+		return err
+	}
+
+	log.Println("Known containers loaded from JSON file.")
+	return nil
+}
+
+func (k *Kubelet) SaveToJSON() error {
+	data, err := json.Marshal(k.knownContainers)
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(containerJSON, data, 0644); err != nil {
+		return err
+	}
+
+	data, err = json.Marshal(k.knownPods)
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(podsJSON, data, 0644); err != nil {
+		return err
+	}
+
+	// log.Println("Known containers saved to JSON file.")
+	return nil
 }

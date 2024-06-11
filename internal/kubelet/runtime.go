@@ -239,7 +239,9 @@ func (r *RuntimeManager) createPauseContainer(images []image.Summary, ctx contex
 	}
 
 	// [Weave网络] 为pause容器添加网络
-	if pod.Status.PodIP == "" {
+	weaveContainers, _ := utils.ListWeaveContainers()
+	_, exists := weaveContainers[pod.Status.PodIP]
+	if pod.Status.PodIP == "" || !exists {
 		res, err := utils.AttachContainer(pauseID)
 		if err != nil {
 			log.Fatal("Pause Container", err.Error()+res)

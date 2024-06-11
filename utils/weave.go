@@ -4,7 +4,33 @@ import (
 	"errors"
 	"os/exec"
 	"regexp"
+	"strings"
 )
+
+func splitAndRemoveRightPart(input string) string {
+	parts := strings.Split(input, "/")
+	if len(parts) > 0 {
+		return parts[0] // Return the part before the "/"
+	}
+	return "" // Return empty string if input does not contain "/"
+}
+func ListWeaveContainers() (map[string]string, error) {
+	out, err := exec.Command("weave", "ps").Output()
+	if err != nil {
+		return nil, err
+	}
+
+	containerIPs := make(map[string]string)
+	lines := strings.Split(string(out), "\n")
+	for _, line := range lines {
+		parts := strings.Fields(line)
+		if len(parts) >= 3 {
+			// Assuming the second part is the container ID and the third part is the IP address
+			containerIPs[parts[0]] = splitAndRemoveRightPart(parts[2])
+		}
+	}
+	return containerIPs, nil
+}
 
 // AttachContainer attaches a container to the Weave network.
 func AttachContainer(containerID string) (string, error) {
