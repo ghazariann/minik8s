@@ -9,7 +9,6 @@ Codebase:
 
 CI/CD is implemented on gihub.
 
-
 ## Project Management and Development
 
 ### Open source libraries used
@@ -47,14 +46,14 @@ The following components run on WorkerNode
 
 **Project branches**：Development is carried out in multiple branches. Each functional point corresponds to a Feature branch, and all pushes will be tested by go test.
 
-**CI/CD***：We added our own Runner through Git Action and wrote a test script for the project to implement CI/CD. Ensure that the environment is fully initialized before each run.
+**CI/CD**：We added our own Runner through Git Action and wrote a test script for the project to implement CI/CD. Ensure that the environment is fully initialized before each run.
 
-1） All  code pushes will be sent to our own server, run unit tests, and directly displayed behind the results of a single push
-2） When a Pr is initiated, the unit test will be automatically run again, and it can be merged only after the test passes
-3） After the unit test passes, the executa file is build and published to the bin directory of the machine
-4） After the above 2 and 3 are passed, for the case of merging into Master, docker-related images will be built and pushed to dockerhub.
+1. All  code pushes will be sent to our own server, run unit tests, and directly displayed behind the results of a single push
+2. When a Pr is initiated, the unit test will be automatically run again, and it can be merged only after the test passes
+3. After the unit test passes, the executa file is build and published to the bin directory of the machine
+4. After the above 2 and 3 are passed, for the case of merging into Master, docker-related images will be built and pushed to dockerhub.
 
-**Testing **：: The project files and test files were put in the same folder. You can run the entire project tests using command `go test ./...`.
+**Testing**：: The project files and test files were put in the same folder. You can run the entire project tests using command `go test ./...`.
 
 ## Components
 
@@ -62,10 +61,11 @@ The following components run on WorkerNode
 
 **API-Server**：API Server is responsible for interacting with etcd storage and providing some core APIObject APIs for other components to use. It provides create delete update and get methods for all Apiobject to be called from kubectl or worker node. Here are all the endpoints
 
-![alt text](image-1.png)
+![alt text](./docs/asset/image-1.png)
 
 **API-Object**
 Minik8s has total of 7 Api objects: pod, service, deployment, node, endpoint, dns and hpa. Inspired by original k8s implementation each object has APIObject, Spec. In etcd we store modified api objects with Status info added: podStore, ServiceStore, etc. For instnace Pod keeps ApiObect and Spec, while PodStore keeps ApiObject, Spec and Status. 
+
 ![alt text](./docs/asset/image.png)
 
 ### Kubelet
@@ -185,7 +185,7 @@ spec:
 
 Minik8s uses the Weave network plugin for Pod-to-Pod communication. We can add a node to the Weave network cluster with simple commands such as `weave launch` and `weave connect` (to connect to peer node). The Weave plug-in will bind the container to a specific IP (the `weave attach` command binds the container to the Weave network) to enable communication between multiple Pods.
 
-### Service抽象
+### Service
 
 Users can create a Service through the declarative method of `kubectl create service -f Servicefile.yaml`.
 When these pods are created, the API-Server will create corresponding endpoints for them based on the labels. When we create a service, we will filter out qualified `endpoints` based on the `service selector`.
