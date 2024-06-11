@@ -77,6 +77,7 @@ func WriteNginxConfig(dns apiobject.Dns, conf string) error {
 	log.Printf("Successfully wrote Nginx configuration to %s\n", configFilePath)
 	return nil
 }
+
 func (d *dnsManager) AddDns(dnsStore apiobject.DnsStore) error {
 
 	nginxConfig := FormatNginxConfig(*dnsStore.ToDns())

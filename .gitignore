@@ -1,7 +1,7 @@
 
 .idea/
 .settings/
-
+persist/
 # Executables
 *.swf
 *.air

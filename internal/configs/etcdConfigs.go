@@ -17,5 +17,6 @@ const (
 	//minik8s/hpas/<hpa-name>
 	ETCDHpaPath = "/minik8s/hpas/"
 	//minik8s/dns/<dns-name>
-	ETCDDnsPath = "/minik8s/dns/"
+	ETCDDnsPath      = "/minik8s/dns/"
+	ETCDDnsServiceIP = "minik8s/dnsServiceIp"
 )

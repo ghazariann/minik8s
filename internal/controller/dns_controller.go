@@ -104,6 +104,7 @@ func (dc *dnsController) GetNginxServiceIP() {
 	if err != nil {
 		log.Fatalf("Error reading response body: %v", err)
 	}
+	// log.Printf("Response body: %s", body)
 	err = json.Unmarshal(body, &nginxSvc)
 	if err != nil {
 		log.Fatalf("Error parsing YAML: %v", err)
@@ -136,12 +137,34 @@ func (dc *dnsController) CreateNginxDns() {
 	}
 
 }
+func (dc *dnsController) UpdateServiceIp() error {
+	// Prepare the IP as JSON
+	url := configs.GetApiServerUrl() + configs.DnsServiceIPUrl
+	ip := dc.nginxServiceIp
+	jsonData := []byte(`"` + ip + `"`) // Encoded as a JSON string
 
+	// Make the HTTP POST request
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Check the response status code
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Failed to update IP: %s", resp.Status)
+		return err
+	}
+
+	log.Println("Service IP updated successfully")
+	return nil
+
+}
 func (dc *dnsController) Run() {
 	// sleep for a while so apiserver will start
 	time.Sleep(2 * time.Second)
 	dc.CreateNginxService()
 	dc.GetNginxServiceIP()
-
+	dc.UpdateServiceIp()
 	// check periodically
 }

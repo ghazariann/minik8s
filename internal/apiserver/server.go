@@ -201,7 +201,18 @@ func StartServer() {
 			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
 		}
 	})
+	// ETCDDnsServiceIP
 
+	http.HandleFunc(configs.DnsServiceIPUrl, func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "GET":
+			handlers.GetDnsServiceIP(w, r)
+		case "POST":
+			handlers.UpdateDnsServiceIP(w, r)
+		default:
+			http.Error(w, "Unsupported HTTP method", http.StatusMethodNotAllowed)
+		}
+	})
 	fmt.Println("API Server starting on port " + configs.API_SERVER_PORT + " ...")
 	if err := http.ListenAndServe(":"+configs.API_SERVER_PORT, nil); err != nil {
 		log.Fatal(err)

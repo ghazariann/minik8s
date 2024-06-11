@@ -138,7 +138,7 @@ func GetService(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(serviceStoreJSON)
-	fmt.Fprintf(w, "Service fetched: %s", serviceName)
+	// fmt.Fprintf(w, "Service fetched: %s", serviceName)
 }
 
 // DeleteService deletes a specific service from etcd by name

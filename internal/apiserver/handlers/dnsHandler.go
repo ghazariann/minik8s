@@ -143,6 +143,34 @@ func GetDns(w http.ResponseWriter, r *http.Request) {
 	w.Write(dnsStoreJson)
 	// fmt.Fprintf(w, "Dns fetched: %s", dnsName)
 }
+
+func UpdateDnsServiceIP(w http.ResponseWriter, r *http.Request) {
+	var serviceIp string
+	if err := json.NewDecoder(r.Body).Decode(&serviceIp); err != nil {
+		http.Error(w, "Failed to decode request body: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	_, err := etcdclient.Cli.Put(context.Background(), configs.ETCDDnsServiceIP, serviceIp)
+	if err != nil {
+		http.Error(w, "Failed to update dns service IP: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func GetDnsServiceIP(w http.ResponseWriter, r *http.Request) {
+	resp, err := etcdclient.Cli.Get(context.Background(), configs.ETCDDnsServiceIP)
+	if err != nil {
+		http.Error(w, "Failed to retrieve dns service IP: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if len(resp.Kvs) > 0 {
+		w.Write(resp.Kvs[0].Value)
+	} else {
+		http.Error(w, "No dns service IP found", http.StatusNotFound)
+	}
+}
 func UpdateDnsStatus(w http.ResponseWriter, r *http.Request) {
 	// Ensure the method is PUT
 

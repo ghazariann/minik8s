@@ -6,5 +6,5 @@ spec:
   hostname: vahag.com
   paths:
   - serviceName: simple-service
-    servicePort: 27017
+    servicePort: 80
     urlPath : /test

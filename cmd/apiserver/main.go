@@ -9,7 +9,7 @@ func main() {
 
 	go controller.WatchDeployment()
 	go controller.WatchHpa()
-	// dnsController := controller.NewDnsController()
-	// go dnsController.Run()
+	dnsController := controller.NewDnsController()
+	go dnsController.Run()
 	apiserver.StartServer()
 }

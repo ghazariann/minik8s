@@ -199,6 +199,28 @@ func reloadNginx(containerName string) error {
 	fmt.Printf("Nginx reload output: %s\n", string(output))
 	return nil
 }
+
+func GetAllServiceIps() ([]string, error) {
+	url := configs.GetApiServerUrl() + configs.DnsServiceIPUrl
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Fatalf("Error making request: %v", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Error reading response body: %v", err)
+	}
+
+	// Unmarshal the JSON response into a slice of PodStore
+	serviceIp := string(body)
+	// log.Printf("Response body: %s", body)
+	// if err := json.Unmarshal(body, &serviceIp); err != nil {
+	// 	log.Fatalf("Error unmarshalling response body: %v", err)
+	// }
+	var serviceIps = []string{serviceIp}
+	return serviceIps, nil
+}
 func (p *KubeProxy) DnsRoutine() error {
 	dnss, err := p.GetAllDns()
 	if err != nil {
@@ -224,6 +246,9 @@ func (p *KubeProxy) DnsRoutine() error {
 	for _, dns := range dnss {
 		if dns.Status.Phase == "pending" {
 			fmt.Println("create dns", dns.Metadata.Name)
+			// get all services ips in list fro dns.Spec.Paths
+			serviceIps, _ := GetAllServiceIps()
+			appendHostEntries(serviceIps, dns.Spec.Hostname)
 			p.dnsManager.AddDns(dns)
 			// add to /etc/hosts
 			// ipList := getAllIps(dns.Spec.Paths)

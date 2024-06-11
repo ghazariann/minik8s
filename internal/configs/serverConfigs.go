@@ -41,6 +41,7 @@ const (
 	HpaStoreUrl = "/hpaStore"
 	HpasUrl     = "/hpas"
 
-	DnsUrl  = "/dns"
-	DnssUrl = "/dnss"
+	DnsUrl          = "/dns"
+	DnssUrl         = "/dnss"
+	DnsServiceIPUrl = "/dnsServiceIp"
 )
