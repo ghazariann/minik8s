@@ -34,10 +34,10 @@ EOF
 fi
 # Go
 # export PATH="$PATH:/usr/local/go/bin"
-if  /usr/local/go/bin/go version &> /dev/null
+if  go version &> /dev/null
 then
     echo "Go is installed"
-    /usr/local/go/bin/go version
+    go version
 else
     echo "Installing go"
     GO_VER=1.22.3
