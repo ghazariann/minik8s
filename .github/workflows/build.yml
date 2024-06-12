@@ -1,7 +1,11 @@
 name: minik8s
 
 on:
-  workflow_dispatch:
+  # workflow_dispatch:
+  push:
+    branches: [ "main", "feature/*"]
+  pull_request:
+    branches: [ "master", "feature/*"]
 
 jobs:
   build:

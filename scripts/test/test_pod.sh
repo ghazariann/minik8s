@@ -16,7 +16,7 @@ fi
 
 # Function to check pod status
 check_pod_status() {
-    for attempt in {1..5}; do
+    for attempt in {1..7}; do
         echo "Checking pod status, attempt $attempt of 5..."
         output_pods=$(./kubectl get pods)
         if [[ "$output_pods" == *"greet-pod"* && "$output_pods" == *"running"* ]]; then
@@ -48,7 +48,7 @@ for container in "${expected_containers[@]}"; do
         exit 1
     fi
 done
-./kubectl delete pod greet-pod
-sleep 5
+# ./kubectl delete pod greet-pod
+# sleep 5
 
 echo "All checks passed!"

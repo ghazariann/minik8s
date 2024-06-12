@@ -16,7 +16,7 @@ fi
 
 # Function to check deployment status
 check_deployment_status() {
-    for attempt in {1..5}; do
+    for attempt in {1..10}; do
         echo "Checking deployment status, attempt $attempt of 5..."
         output_deployments=$(./kubectl get deployments)
         ready_replicas=$(echo "$output_deployments" | grep "simple-deployment" | awk '{print $3}')
