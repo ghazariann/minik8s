@@ -14,7 +14,7 @@ jobs:
       run: |
         sudo chmod 777 ./script/setup.sh
         sudo ./script/setup.sh
- 
+      working-directory: /root/minik8s
     - name: Build Production
       run: |
         go build  -o ./build/kubectl/kubectl ./cmd/kubectl
@@ -23,6 +23,7 @@ jobs:
         mkdir -p ~/minik8s
         mkdir -p ~/minik8s/bin
         cp -r ./build ~/minik8s/bin
+      working-directory: /root/minik8s
     # - name: Test
     #   run: | 
     #     sudo go test ./...
