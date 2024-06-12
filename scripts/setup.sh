@@ -33,11 +33,11 @@ EOF
     sudo systemctl start etcd
 fi
 # Go
-export PATH="$PATH:/usr/local/go/bin"
-if  command -v go &> /dev/null
+# export PATH="$PATH:/usr/local/go/bin"
+if  /usr/local/go/bin/go version &> /dev/null
 then
     echo "Go is installed"
-    go version
+    /usr/local/go/bin/go version
 else
     echo "Installing go"
     GO_VER=1.22.3
