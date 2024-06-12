@@ -13,8 +13,8 @@ jobs:
     - name: Set up system env
       run: |
         sudo chmod 777 ./script/setup.sh
-        sudo ./script/setup.sh
-      working-directory: /root/minik8s
+        sudo ../minik8s/script/setup.sh
+      # working-directory: /root/minik8s
     - name: Build Production
       run: |
         go build  -o ./build/kubectl/kubectl ./cmd/kubectl
