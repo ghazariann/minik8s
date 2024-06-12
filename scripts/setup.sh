@@ -33,6 +33,7 @@ EOF
     sudo systemctl start etcd
 fi
 # Go
+echo "set env"
 export PATH="$PATH:/usr/local/go/bin"
 if  go version &> /dev/null
 then
