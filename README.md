@@ -74,6 +74,7 @@ Here is the workflow:
 5)  Run them all
 6)  Test using `./scripts/test/test_all.sh`
 
+![alt text](./docs/asset/image-9.png)
 ## Components
 
 ### API Server
