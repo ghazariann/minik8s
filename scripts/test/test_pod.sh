@@ -48,7 +48,7 @@ for container in "${expected_containers[@]}"; do
         exit 1
     fi
 done
-# ./kubectl delete pod greet-pod
-# sleep 5
+./kubectl delete pod greet-pod
+sleep 5
 
 echo "All checks passed!"
