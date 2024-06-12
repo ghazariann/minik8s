@@ -37,8 +37,8 @@ jobs:
 
     - name: Run Test
       run: | 
-        sudo chmod +x ./scripts/tests/test_all.sh
-        sudo ./scripts/tests/test_all.sh
+        sudo chmod +x ./scripts/test/test_all.sh
+        sudo ./scripts/test/test_all.sh
       working-directory: /root/minik8s
 
 
