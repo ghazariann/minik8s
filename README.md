@@ -63,14 +63,16 @@ And here is results
 
 ![alt text](./docs/asset/image-7.png)
 
-**CI/CD**：[TODO] 
+**CI/CD**：
 
-We added our own Runner through Git Action and wrote a test script for the project to implement CI/CD. Ensure that the environment is fully initialized before each run.
-
-1. All  code pushes will be sent to our own server, run unit tests, and directly displayed behind the results of a single push
-2. When a Pr is initiated, the unit test will be automatically run again, and it can be merged only after the test passes
-3. After the unit test passes, the executa file is build and published to the bin directory of the machine
-4. After the above 2 and 3 are passed, for the case of merging into Master, docker-related images will be built and pushed to dockerhub.
+We have added our Runner (hosted on Huawei cloud) through Git Action, please see minik8s workflow and the build.yml file. 
+Here is the workflow:
+1) The minik8s action will be triggered after each main or feature/* branch push and pr
+2)  Pull the last code updates using  actions/checkout@v3 
+3)  Run ./setup sh to make sure all dependencies are installed
+4)  Build our kubectl, apiserver and worker binaries
+5)  Run them all
+6)  Test using `./scripts/test/test_all.sh`
 
 ## Components
 
