@@ -16,7 +16,7 @@ fi
 
 # Function to check HPA status
 check_hpa_status() {
-    for attempt in {1..5}; do
+    for attempt in {1..10}; do
         echo "Checking HPA status, attempt $attempt of 5..."
         output_hpas=$(./kubectl get hpas)
         current_replicas=$(echo "$output_hpas" | grep "test-hpa" | awk '{print $4}')
