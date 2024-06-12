@@ -6,6 +6,8 @@ on:
 jobs:
   build:
     runs-on: self-hosted
+    env:
+      PATH: ${{ env.PATH }}:/usr/local/go/bin
     steps:
     # - uses: actions/checkout@v3 
     - name: Set up system env
