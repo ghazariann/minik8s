@@ -33,6 +33,7 @@ EOF
     sudo systemctl start etcd
 fi
 # Go
+export PATH="$PATH:/usr/local/go/bin"
 if  command -v go &> /dev/null
 then
     echo "Go is installed"
