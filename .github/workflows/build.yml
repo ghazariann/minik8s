@@ -7,7 +7,7 @@ jobs:
   build:
     runs-on: self-hosted
     steps:
-    # - uses: actions/checkout@v3 
+    - uses: actions/checkout@v3 
     - name: Set up system env
       run: |
         sudo chmod 777 ./scripts/setup.sh
