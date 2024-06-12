@@ -1,0 +1,28 @@
+name: minik8s
+on:
+  # push:
+  #   branches: [ "master", "feature/*"]
+  # pull_request:
+  #   branches: [ "master", "feature/*"]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up system env
+      run: |
+        sudo chmod 777 ./script/setup.sh
+        sudo ./script/setup.sh
+ 
+    - name: Build Production
+      run: |
+        go build  -o ./build/kubectl/kubectl ./cmd/kubectl
+        go build  -o ./build/apiserver/apiserver ./cmd/apiserver
+        go build  -o ./build/worker/worker ./cmd/worker
+        mkdir -p ~/minik8s
+        mkdir -p ~/minik8s/bin
+        cp -r ./build ~/minik8s/bin
+    # - name: Test
+    #   run: | 
+    #     sudo go test ./...
